@@ -66,32 +66,44 @@ quadtree_box = SSS.quadtree_box
 # println(quadtree_box(10, 10))
 # println(quadtree_box(11, 11))
 # println(quadtree_box([7, 16], [11, 18]))
-println(quadtree_box(Uint8[25,59], Uint8[37,6]))
+for i in 1:1000
+	# a = Uint8[25,59]
+	# b = Uint8[37,6]
+	a = [rand(Uint8), rand(Uint8)]
+	b = SSS.satadd(a, uint8(10))
+	@test shuffless(a, b)
+	box = quadtree_box(a, b)
+	println("Box for $a, $b: ", box)
+	@test shuffless(box.lo, a)
+	@test shuffless(a, b)
+	@test shuffless(b, box.hi) || shuffeq(b, box.hi)
+end
+
 
 
 #
 
-dist = SSS.dist
-function nearest_linear(arr, q)
-	local best
-	best_dist = Inf
-	for point in arr
-		if dist(point, q) < best_dist
-			best, best_dist = point, dist(point, q)
-		end
-	end
-	best
-end
+# dist = SSS.dist
+# function nearest_linear(arr, q)
+# 	local best
+# 	best_dist = Inf
+# 	for point in arr
+# 		if dist(point, q) < best_dist
+# 			best, best_dist = point, dist(point, q)
+# 		end
+# 	end
+# 	best
+# end
 
-pts = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
-sort!(pts, lt=shuffless)
-for i in 1:10
-	pt = [rand(Uint8), rand(Uint8)]
-	result = nearest(pts, pt)
-	result_linear = nearest_linear(pts, pt)
-	if dist(pt, result) != dist(pt, result_linear)
-		println("Nearest point to ", pt, ": ", result, "; linear=", result_linear)
-		println("--- Distances: ", dist(pt, result), ", ", dist(pt, result_linear))
-		println()
-	end
-end
+# pts = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
+# sort!(pts, lt=shuffless)
+# for i in 1:10
+# 	pt = [rand(Uint8), rand(Uint8)]
+# 	result = nearest(pts, pt)
+# 	result_linear = nearest_linear(pts, pt)
+# 	if dist(pt, result) != dist(pt, result_linear)
+# 		println("Nearest point to ", pt, ": ", result, "; linear=", result_linear)
+# 		println("--- Distances: ", dist(pt, result), ", ", dist(pt, result_linear))
+# 		println()
+# 	end
+# end

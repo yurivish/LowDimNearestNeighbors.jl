@@ -101,26 +101,17 @@ function dist(p, box::QuadtreeBox)
 end
 
 function quadtree_box(lo, hi)
-	# k = shuffdim(lo, hi) # The dimension with the most significant differing bit between lo and hi
-	# kxor = lo[k] $ hi[k] # The highest turned-on bit is the highest differing bit between lo and hi
-	# i = kxor == 0 ? 0 : ifloor(log2(kxor)) # The power of 2 of the size of the quadtree bounding box for lo and hi
-	# QuadtreeBox(
-	# 	[((val >> i) << i)            for val in hi],
-	# 	[((val >> i) << i) + (1 << i) for val in hi]
-	# )
-	
-	ixor = lo[1] $ hi[1]
+	xor = zero(eltype(lo))
 	for i in length(lo)
-		if lessmsb(ixor, lo[i] $ hi[i])
-			ixor = lo[i] $ hi[i]
-		end
+		ixor = lo[i] $ hi[i]
+		lessmsb(xor, ixor) && (xor = ixor)
 	end
 
-	i = ixor == 0 ? 0 : ifloor(log2(ixor))
+	i = xor == 0 ? 1 : 1 + ifloor(log2(xor))
 
 	QuadtreeBox(
-		[((val >> i) << i)            for val in lo],
-		[((val >> i) << i) + (1 << i) for val in lo]
+		[ ifloor(val/(2^i))      * 2^i for val in lo],
+		[(ifloor(val/(2^i)) + 1) * 2^i for val in lo]
 	)
 end
 
