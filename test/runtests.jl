@@ -45,3 +45,27 @@ shuffdim = SSS.shuffdim
 @test shuffeq([1, 2, 3], [1, 2, 3])
 
 #
+
+dist = SSS.dist
+function nearest_linear(arr, q)
+	local best
+	best_dist = Inf
+	for point in arr
+		if dist(point, q) < best_dist
+			best, best_dist = point, dist(point, q)
+		end
+	end
+	best
+end
+
+pts = [[rand(Uint8), rand(Uint8)] for i in 1:100]
+sort!(pts, lt=shuffless)
+for i in 1:10:100
+	pt = [i, i]
+	result = nearest(pts, pt)
+	result_linear = nearest_linear(pts, pt)
+	println("Nearest point to ", pt, ": ", result, "; linear=", result_linear)
+	if dist(pt, result) != dist(pt, result_linear)
+		println("--- Distances: ", dist(pt, result), ", ", dist(pt, result_linear))
+	end
+end

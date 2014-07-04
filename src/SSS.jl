@@ -1,6 +1,6 @@
 module SSS
 
-export shuffless, shuffmore, shuffeq
+export shuffless, shuffmore, shuffeq, nearest
 
 # A minimalist's implementation of the ideas described in
 # A Minimalist's Implementation of an Approximate Nearest Neighbor Algorithm in Fixed Dimensions.
@@ -75,49 +75,85 @@ shuffless(p, q) = (k = shuffdim(p, q); p[k] < q[k])
 shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
   shuffeq(p, q) = (k = shuffdim(p, q); p[k] == q[k])
 
-function sq_dist_to_box(point, lo, hi)
-	# Return the squared distance from point to
-	# the power-of-two-sized box defined by lo and hi.
-
-end
-
 type Result
-	q
+	point
 	r::Float64
 end
 
 dist(p, q) = sqrt(sum(map(n -> n^2, p - q)))
-function dist(p, box::QuadtreeBox)
-
-end
 
 immutable QuadtreeBox
 	lo
 	hi
 end
 
-function quadtree_box(a, b)
+function dist(p, box::QuadtreeBox)
+	@assert length(p) == length(box.lo) == length(box.hi)
+	sqdist::Uint = 0
+	for i in 1:length(p)
+		if p[i] < box.lo[i]
+			sqdist += (p[i] - box.lo[i])^2
+		elseif p[i] > box.hi[i]
+			sqdist += (p[i] - box.hi[i])^2
+		end
+	end
+	sqrt(sqdist)
+end
 
+
+function quadtree_box(p, q)
+	k = shuffdim(p, q)
+	# k is the dimension in which p and q differ in
+	# the highest bit of any dimension.
+
+	i = ifloor(log2(p[k] $ q[k]))
+	# i is the power of two of the size of the smallest 
+	# quadtree box containing p and q.
+	size = 2^i
+
+	# but we don't know where the top-left is yet.
+	# The bits that tell us this are all of the bits 
+	# to the left of the i-th bit -- the i-th bit
+	# and rightwards from it describe variation and
+	# placement *within* the quadtree box, while the
+	# bits to the left of it are what locates you more
+	# globally.
+
+
+	# The left and right coordinates of the bounding box in this dimension
+	# lo = (min[j] >> i) << i # equivalent to floor(min[j] / 2^i) * 2^i
+	# hi = lo + (1 << i)      # equivalent to lo + 2^i
+	# These work by essentially shifting off all of the bits
+	# from the ith digit onwards, turning them into zeros.
+
+	QuadtreeBox(
+		[(val >> i) << i              for val in p], # NOTE: p and q are identical wrt. all bits higher than the i-th one
+		[((val >> i) << i) + (1 << i) for val in p] # NOTE: Could do a |.
+	)
 end
 
 function nearest(arr, q, lo::Uint, hi::Uint, R)
-	hi > lo && return R
+	lo > hi && return R
 	mid = (lo + hi) >>> 1 # Avoid midpoint overflow
-	r = min(R.r, dist(arr[mid], q))
+	r = dist(arr[mid], q)
+	if r < R.r
+		R = Result(arr[mid], r)
+	end
+
 	lo == hi && return R
-	dist(q, quadtree_box(arr[lo], arr[hi]) >= r && return R
+	dist(q, quadtree_box(arr[lo], arr[hi])) >= r && return R
 
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R)
-		shuffmore(q + iceil(r), arr[mid]) && (R = query(arr, q, mid + 1, hi, R))
+		shuffmore(q + iceil(r), arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R))
 	else
 		R = nearest(arr, q, mid + 1, hi, R)
-		shuffless(q - iceil(r), arr[mid]) && (R = query(arr, q, lo, mid - 1, R))
+		shuffless(q - iceil(r), arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R))
 	end
 
 	R
 end
 
-nearest(arr, q) = nearest(arr, q, 1, length(arr), Result(q, Inf))
+nearest(arr, q) = nearest(arr, q, uint(1), uint(length(arr)), Result(q, Inf)).point
 
 end # module
