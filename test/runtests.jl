@@ -74,7 +74,7 @@ for i in 1:1000
 	@test shuffless(a, b)
 	box = quadtree_box(a, b)
 	println("Box for $a, $b: ", box)
-	@test shuffless(box.lo, a)
+	@test shuffless(box.lo, a) || shuffeq(box.lo, a)
 	@test shuffless(a, b)
 	@test shuffless(b, box.hi) || shuffeq(b, box.hi)
 end
