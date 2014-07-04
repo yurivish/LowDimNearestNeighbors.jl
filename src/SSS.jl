@@ -80,69 +80,44 @@ type Result
 	r::Float64
 end
 
-dist(p, q) = sqrt(sum(map(n -> n^2, p - q)))
+dist(p, q) = norm(int(p) - int(q)) # sqrt(sum(map(n -> n^2, p - q)))
 
-immutable QuadtreeBox
-	lo
-	hi
-end
+function dist_to_quadtree_box(p, lo, hi)
+	k = shuffdim(lo, hi)
+	xor = lo[k] $ hi[k]
+	power = xor == 0 ? 1 : 1 + exponent(float(xor))
 
-function dist(p, box::QuadtreeBox)
-	@assert length(p) == length(box.lo) == length(box.hi)
 	sqdist::Uint = 0
 	for i in 1:length(p)
-		if p[i] < box.lo[i]
-			sqdist += (p[i] - box.lo[i])^2
-		elseif p[i] > box.hi[i]
-			sqdist += (p[i] - box.hi[i])^2
+		box_lo = (lo[i] >> power) << power
+		box_hi = box_lo + (1 << power)
+
+		if p[i] < box_lo
+			sqdist += (p[i] - box_lo)^2
+		elseif p[i] > box_hi
+			sqdist += (p[i] - box_hi)^2
 		end
 	end
 	sqrt(sqdist)
 end
 
-function quadtree_box(lo, hi)
-	xor = zero(eltype(lo))
-	for i in length(lo)
-		ixor = lo[i] $ hi[i]
-		lessmsb(xor, ixor) && (xor = ixor)
-	end
-
-	i = xor == 0 ? 1 : 1 + ifloor(log2(xor))
-
-	QuadtreeBox(
-		[ ifloor(val/(2^i))      * 2^i for val in lo],
-		[(ifloor(val/(2^i)) + 1) * 2^i for val in lo]
-	)
-end
-
-function satadd{T}(arr::Array{T}, b)
-	[(a + iceil(b) < typemax(a)) ? (a + iceil(b)) : typemax(a) for a in arr]
-end
-
-function satsub{T}(arr::Array{T}, b)
-	[a > b ? a - iceil(b) : zero(T) for a in arr]
-end
+satadd(p, r) = map(c -> oftype(c, min(c + r, typemax(c))), p)
+satsub(p, r) = map(c -> oftype(c, max(c - r, typemin(c))), p)
 
 function nearest(arr, q, lo::Uint, hi::Uint, R)
 	lo > hi && return R
-	mid = uint(ifloor((lo + hi) / 2)) # >>> 1 # Avoid midpoint overflow
+	mid = (lo + hi) >>> 1 # Avoid midpoint overflow
 	r = dist(arr[mid], q)
-	if r < R.r
-		R = Result(arr[mid], r)
-	end
-
+	r < R.r && (R = Result(arr[mid], r))
 	lo == hi && return R
-	# println("Box for $(arr[lo]), $(arr[hi]): ", quadtree_box(arr[lo], arr[hi]))
-	# println()
-
-	dist(q, quadtree_box(arr[lo], arr[hi])) >= r && return R
+	dist_to_quadtree_box(q, arr[lo], arr[hi]) >= r && return R
 
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R)
-		shuffmore(satadd(q, r), arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R))
+		shuffmore(satadd(q, iceil(r)), arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R))
 	else
 		R = nearest(arr, q, mid + 1, hi, R)
-		shuffless(satsub(q, r), arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R))
+		shuffless(satsub(q, iceil(r)), arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R))
 	end
 
 	R

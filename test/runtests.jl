@@ -46,64 +46,35 @@ shuffdim = SSS.shuffdim
 
 #
 
-satadd = SSS.satadd
-println(satadd([0xdd, 0x22], 100))
-
-satsub = SSS.satsub
-println(satsub([0xdd, 0x22], 100))
+# println(SSS.satadd([0x01, 0xdd], 100))
+# println(SSS.satsub([0x01, 0xdd], 100))
 
 #
 
-quadtree_box = SSS.quadtree_box
-# println(quadtree_box(1, 1))
-# println(quadtree_box(1, 2))
-# println(quadtree_box(1, 3))
-# println(quadtree_box(1, 4))
-# println(quadtree_box(7, 8))
-# println(quadtree_box(7, 7))
-# println(quadtree_box(8, 8))
-# println(quadtree_box(9, 9))
-# println(quadtree_box(10, 10))
-# println(quadtree_box(11, 11))
-# println(quadtree_box([7, 16], [11, 18]))
-for i in 1:1000
-	# a = Uint8[25,59]
-	# b = Uint8[37,6]
-	a = [rand(Uint8), rand(Uint8)]
-	b = SSS.satadd(a, uint8(10))
-	@test shuffless(a, b)
-	box = quadtree_box(a, b)
-	println("Box for $a, $b: ", box)
-	@test shuffless(box.lo, a) || shuffeq(box.lo, a)
-	@test shuffless(a, b)
-	@test shuffless(b, box.hi) || shuffeq(b, box.hi)
+dist = SSS.dist
+function nearest_linear(arr, q)
+	# arr[indmin(p -> dist(p, q), arr)]
+	best, best_dist = q, Inf
+	for point in arr
+		if dist(point, q) < best_dist
+			best, best_dist = point, dist(point, q)
+		end
+	end
+	best
 end
 
+pts = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
+sort!(pts, lt=shuffless)
+for i in 1:1000
+	q = [rand(Uint8), rand(Uint8)]
+	result = nearest(pts, q)
+	result_linear = nearest_linear(pts, q)
 
+	if dist(q, result) != dist(q, result_linear)
+		println("Wtf. Searching for ", q, ":")
+		println("\tResult: ", result, "\t", dist(result, q))
+		println("\tLinear: ", result_linear, "\t", dist(result_linear, q))
+		println()
+	end
 
-#
-
-# dist = SSS.dist
-# function nearest_linear(arr, q)
-# 	local best
-# 	best_dist = Inf
-# 	for point in arr
-# 		if dist(point, q) < best_dist
-# 			best, best_dist = point, dist(point, q)
-# 		end
-# 	end
-# 	best
-# end
-
-# pts = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
-# sort!(pts, lt=shuffless)
-# for i in 1:10
-# 	pt = [rand(Uint8), rand(Uint8)]
-# 	result = nearest(pts, pt)
-# 	result_linear = nearest_linear(pts, pt)
-# 	if dist(pt, result) != dist(pt, result_linear)
-# 		println("Nearest point to ", pt, ": ", result, "; linear=", result_linear)
-# 		println("--- Distances: ", dist(pt, result), ", ", dist(pt, result_linear))
-# 		println()
-# 	end
-# end
+end
