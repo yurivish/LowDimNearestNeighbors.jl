@@ -46,6 +46,31 @@ shuffdim = SSS.shuffdim
 
 #
 
+satadd = SSS.satadd
+println(satadd([0xdd, 0x22], 100))
+
+satsub = SSS.satsub
+println(satsub([0xdd, 0x22], 100))
+
+#
+
+quadtree_box = SSS.quadtree_box
+# println(quadtree_box(1, 1))
+# println(quadtree_box(1, 2))
+# println(quadtree_box(1, 3))
+# println(quadtree_box(1, 4))
+# println(quadtree_box(7, 8))
+# println(quadtree_box(7, 7))
+# println(quadtree_box(8, 8))
+# println(quadtree_box(9, 9))
+# println(quadtree_box(10, 10))
+# println(quadtree_box(11, 11))
+# println(quadtree_box([7, 16], [11, 18]))
+println(quadtree_box(Uint8[25,59], Uint8[37,6]))
+
+
+#
+
 dist = SSS.dist
 function nearest_linear(arr, q)
 	local best
@@ -58,14 +83,15 @@ function nearest_linear(arr, q)
 	best
 end
 
-pts = [[rand(Uint8), rand(Uint8)] for i in 1:100]
+pts = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
 sort!(pts, lt=shuffless)
-for i in 1:10:100
-	pt = [i, i]
+for i in 1:10
+	pt = [rand(Uint8), rand(Uint8)]
 	result = nearest(pts, pt)
 	result_linear = nearest_linear(pts, pt)
-	println("Nearest point to ", pt, ": ", result, "; linear=", result_linear)
 	if dist(pt, result) != dist(pt, result_linear)
+		println("Nearest point to ", pt, ": ", result, "; linear=", result_linear)
 		println("--- Distances: ", dist(pt, result), ", ", dist(pt, result_linear))
+		println()
 	end
 end

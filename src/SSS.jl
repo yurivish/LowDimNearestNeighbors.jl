@@ -100,55 +100,58 @@ function dist(p, box::QuadtreeBox)
 	sqrt(sqdist)
 end
 
+function quadtree_box(lo, hi)
+	# k = shuffdim(lo, hi) # The dimension with the most significant differing bit between lo and hi
+	# kxor = lo[k] $ hi[k] # The highest turned-on bit is the highest differing bit between lo and hi
+	# i = kxor == 0 ? 0 : ifloor(log2(kxor)) # The power of 2 of the size of the quadtree bounding box for lo and hi
+	# QuadtreeBox(
+	# 	[((val >> i) << i)            for val in hi],
+	# 	[((val >> i) << i) + (1 << i) for val in hi]
+	# )
+	
+	ixor = lo[1] $ hi[1]
+	for i in length(lo)
+		if lessmsb(ixor, lo[i] $ hi[i])
+			ixor = lo[i] $ hi[i]
+		end
+	end
 
-function quadtree_box(p, q)
-	k = shuffdim(p, q)
-	# k is the dimension in which p and q differ in
-	# the highest bit of any dimension.
-
-	i = ifloor(log2(p[k] $ q[k]))
-	# i is the power of two of the size of the smallest 
-	# quadtree box containing p and q.
-	size = 2^i
-
-	# but we don't know where the top-left is yet.
-	# The bits that tell us this are all of the bits 
-	# to the left of the i-th bit -- the i-th bit
-	# and rightwards from it describe variation and
-	# placement *within* the quadtree box, while the
-	# bits to the left of it are what locates you more
-	# globally.
-
-
-	# The left and right coordinates of the bounding box in this dimension
-	# lo = (min[j] >> i) << i # equivalent to floor(min[j] / 2^i) * 2^i
-	# hi = lo + (1 << i)      # equivalent to lo + 2^i
-	# These work by essentially shifting off all of the bits
-	# from the ith digit onwards, turning them into zeros.
+	i = ixor == 0 ? 0 : ifloor(log2(ixor))
 
 	QuadtreeBox(
-		[(val >> i) << i              for val in p], # NOTE: p and q are identical wrt. all bits higher than the i-th one
-		[((val >> i) << i) + (1 << i) for val in p] # NOTE: Could do a |.
+		[((val >> i) << i)            for val in lo],
+		[((val >> i) << i) + (1 << i) for val in lo]
 	)
+end
+
+function satadd{T}(arr::Array{T}, b)
+	[(a + iceil(b) < typemax(a)) ? (a + iceil(b)) : typemax(a) for a in arr]
+end
+
+function satsub{T}(arr::Array{T}, b)
+	[a > b ? a - iceil(b) : zero(T) for a in arr]
 end
 
 function nearest(arr, q, lo::Uint, hi::Uint, R)
 	lo > hi && return R
-	mid = (lo + hi) >>> 1 # Avoid midpoint overflow
+	mid = uint(ifloor((lo + hi) / 2)) # >>> 1 # Avoid midpoint overflow
 	r = dist(arr[mid], q)
 	if r < R.r
 		R = Result(arr[mid], r)
 	end
 
 	lo == hi && return R
+	# println("Box for $(arr[lo]), $(arr[hi]): ", quadtree_box(arr[lo], arr[hi]))
+	# println()
+
 	dist(q, quadtree_box(arr[lo], arr[hi])) >= r && return R
 
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R)
-		shuffmore(q + iceil(r), arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R))
+		shuffmore(satadd(q, r), arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R))
 	else
 		R = nearest(arr, q, mid + 1, hi, R)
-		shuffless(q - iceil(r), arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R))
+		shuffless(satsub(q, r), arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R))
 	end
 
 	R
