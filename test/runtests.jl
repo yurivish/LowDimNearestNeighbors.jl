@@ -51,13 +51,13 @@ shuffdim = SSS.shuffdim
 
 #
 
-dist = SSS.dist
+sqdist = SSS.sqdist
 function nearest_linear(arr, q)
-	# arr[indmin(p -> dist(p, q), arr)]
-	best, best_dist = q, Inf
+	# arr[indmin(p -> sqdist(p, q), arr)]
+	best, best_sqdist = q, Inf
 	for point in arr
-		if dist(point, q) < best_dist
-			best, best_dist = point, dist(point, q)
+		if sqdist(point, q) < best_sqdist
+			best, best_sqdist = point, sqdist(point, q)
 		end
 	end
 	best
@@ -65,15 +65,15 @@ end
 
 pts = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
 sort!(pts, lt=shuffless)
-for i in 1:1000
+@time for i in 1:100
 	q = [rand(Uint8), rand(Uint8)]
 	result = nearest(pts, q)
 	result_linear = nearest_linear(pts, q)
 
-	if dist(q, result) != dist(q, result_linear)
+	if sqdist(q, result) != sqdist(q, result_linear)
 		println("Wtf. Searching for ", q, ":")
-		println("\tResult: ", result, "\t", dist(result, q))
-		println("\tLinear: ", result_linear, "\t", dist(result_linear, q))
+		println("\tResult: ", result, "\t", sqdist(result, q))
+		println("\tLinear: ", result_linear, "\t", sqdist(result_linear, q))
 		println()
 	end
 

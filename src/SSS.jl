@@ -2,66 +2,25 @@ module SSS
 
 export shuffless, shuffmore, shuffeq, nearest
 
-# A minimalist's implementation of the ideas described in
-# A Minimalist's Implementation of an Approximate Nearest Neighbor Algorithm in Fixed Dimensions.
-# Paper: https://cs.uwaterloo.ca/~tmchan/sss.ps
-# Additional references:
-#  - http://en.wikipedia.org/wiki/Z-order_curve#Efficiently_building_quadtrees
-
-# m < n iff the index of the most significant bit in the
-# base-2 representation of n is greater than that of m.
-# - If m == n then the index of the msb in both is the same. (e.g. m=111, n=111)
-# - If m > n then the index of the msb in n is either the same
-#   or greater than m. (e.g. m=111, n=101, m=111, n=011)
-# - If m < n, the index of n's msb may still be the same as m. (e.g. m=101, n=111)
-#   This is where the second condition comes in.
-#   - If m's msb is the same as n's,
-#     then the msb will zero out in m $ n, and m will not be less than m $ n.
-#   - m's msb cannot be greater than n's, since we got here because m < n.
-#   - if m's msb is less than n's (e.g. m=011, n=101), then (m $ n)'s msb
-#     will be greater than m's, causing m < (m $ n) to be true.
-#     (a number with a greater msb is always greater than a number with a lesser msb.
-#     this is like saying that a number with more digits (in decimal) will always
-#     be greater than a number with less digits (provided we're counting non-zero leading
-#     digits)
-# Visual algorithm: put the two numbers next to each other vertically, and
-# sweep a line from the left. If you encounter a 1 bit in the second number
-# before you encounter a 1 bit in the first number, then the second
-# number is greater and you should return true. Otherwise, return false.
-# This function is more efficient, because executing it takes many less
-# processor instructions. (Concept: Multiple implementations for algorithms,
-# which take potentially very different lengths of time to run. Just like
-# linear nearest-neighbors versus the more sophisticated approach.)
-# Questions:
-# - What do bit patterns look like ordered by lessmsb?
-# - What numbers do they correspond to in base 10?
-# - If you take all, say, 32-bit numbers, and order them by lessmsb, what does it look like?
-# - (By the way, this is what it means when people talk about 32- and 64- bit numbers!)
-# - (It's literally about how many bits they have, and therefore how many different patterns
-#   you can make!)
+# Return whether the index of the most significant bit
+# of m is higher than that of n.
 lessmsb(m, n) = m < n && m < (m $ n)
 
-# shuffless: a generalization of the above function to multiple dimensions,
-# assuming that bits in some dimensions matter more than bits in others.
-# This gives you an order: If the bits in the most important dimension are the same,
-# break ties in the second-most important dimension, and so on.
-
+# Find the deciding dimension that determines which
+# of p and q comes first in shuffle order. This is
+# equivalent to finding the dimension with the most
+# significant differing bit between p and q.
+# Ties are broken in favor of lower-index dimensions;
+# this is a consequence of the order in which the bits
+# are conceptually interleaved.
 function shuffdim(p, q)
-	# We want to compare two points according to their shuffle order.
-	# This helper function takes two points and returns the dimension
-	# with the highest differing bit between p and q. This is
-	# the bit that determines shuffle order.
-	# If p and q are identical, return dimension 1.
-	# Conceptually, bits are interleaved in xyzxyzxyzxyz form, which
-	# is the reason that we loop through dimensions in xyz order.
-
+	@assert length(p) > 0 && length(q) > 0
 	@assert length(p) == length(q)
 
-	# lessmsb(a$b, c$d) tells you which of {a, b} or {c, d} has the highest-index
-	# bit along which they differ.
-	# The reason for this is that xor(same, same) == 0 and xor(same, different) == 1
-	k = 1
-	kxor = p[k] $ q[k]
+	# For any integers x and y, the most significant
+	# bit of x $ y is the most significant differing
+	# bit between x and y.
+	k, kxor = 1, p[1] $ q[1]
 	for i in 2:length(p)
 		ixor = p[i] $ q[i]
 		if lessmsb(kxor, ixor)
@@ -78,46 +37,70 @@ shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
 
 type Result
 	point
-	r::Float64
+	r_sq::Float64
 end
 
-dist(p, q) = norm(int(p) - int(q))
+# Euclidean distance, though any p-norm will do.
+# dist(p, q) = norm(int(p) - int(q))
+# Squared euclidean distance, though any p-norm will do.
+sqdist(p, q) = sum(map(n -> n^2, int(p) - int(q)))
 
-function dist_to_quadtree_box(point, p1, p2)
-	# Like the loop in shuffdim, except we don't track the dimension.
-	# What we care about is the position of the highest differing bit.
-	xor = 0
-	for i in 1:length(p1)
+function sqdist_to_quadtree_box(q, p1, p2)
+	@assert length(q) == length(p1) == length(p2)
+	@assert length(q) > 0 && length(p1) > 0 && length(p2) > 0
+
+	# Find the most significant differing bit between p1 and p2
+	xor = p1[1] $ p2[1]
+	for i in 2:length(p1)
 		ixor = p1[i] $ p2[i]
 		lessmsb(xor, ixor) && (xor = ixor)
 	end
-	power = xor == 0 ? 1 : 1 + ifloor(log2(xor))
 
-	sqdist::Uint = 0
-	for i in 1:length(point)
+	# The size and power-of-two of the smallest quadtree-aligned
+	# bounding box that encompasses p1 and p2
+	power = xor == 0 ? 1 : 1 + exponent(float(xor))
+	size = (1 << power)
+
+	# Calculate the distance from q to the bounding box
+	sqdist = 0
+	for i in 1:length(q)
+		# Compute the coordinates of the bounding box in this dimension
 		bbox_lo = (p1[i] >> power) << power
-		bbox_hi = bbox_lo + (1 << power)
+		bbox_hi = bbox_lo + size
 
-		if point[i] < bbox_lo
-			sqdist += (point[i] - bbox_lo)^2
-		elseif point[i] > bbox_hi
-			sqdist += (point[i] - bbox_hi)^2
+		if q[i] < bbox_lo
+			sqdist += (q[i] - bbox_lo)^2
+		elseif q[i] > bbox_hi
+			sqdist += (q[i] - bbox_hi)^2
 		end
 	end
-	sqrt(sqdist)
+	sqdist
 end
 
+# Saturation arithmetic for shifting points without running into overflows
 satadd(p, r) = map(c -> oftype(c, min(c + r, typemax(c))), p)
 satsub(p, r) = map(c -> oftype(c, max(c - r, typemin(c))), p)
 
 function nearest(arr, q, lo::Uint, hi::Uint, R)
+	# Return early if the range is empty.
 	lo > hi && return R
-	mid = (lo + hi) >>> 1 # Avoid midpoint overflow
-	r = dist(arr[mid], q)
-	r < R.r && (R = Result(arr[mid], r))
-	lo == hi && return R
-	dist_to_quadtree_box(q, arr[hi], arr[lo]) >= r && return R
 
+	# Calculate the midpoint of the range, avoiding midpoint overflow.
+	mid = (lo + hi) >>> 1
+
+	# Compute the distance from the probe point to the query point,
+	# and update the result if it's closer than our best match so far.
+	r_sq = sqdist(arr[mid], q)
+	r_sq < R.r_sq && (R = Result(arr[mid], r_sq))
+
+	# Return early if the range is only one element wide or if the
+	# bounding box containing the range is outside of our search radius.
+	(lo == hi || sqdist_to_quadtree_box(q, arr[hi], arr[lo]) >= r_sq) && return R
+
+	# Recurse, à la binary search. Unlike binary search, we occasionally recurse
+	# into the second of the array when we can't guarantee that the nearest point
+	# lies inside it.
+	r = sqrt(r_sq)
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R)
 		shuffmore(satadd(q, iceil(r)), arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R))
