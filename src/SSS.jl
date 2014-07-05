@@ -1,6 +1,6 @@
 module SSS
 
-export shuffless, shuffmore, shuffeq, nearest
+export shuffless, shuffmore, shuffeq, preprocess!, nearest
 
 # Return whether the index of the most significant bit
 # of m is higher than that of n.
@@ -34,6 +34,8 @@ end
 shuffless(p, q) = (k = shuffdim(p, q); p[k] < q[k])
 shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
   shuffeq(p, q) = (k = shuffdim(p, q); p[k] == q[k])
+
+preprocess!(arr) = sort!(arr, lt=shuffless)
 
 # Saturation arithmetic for shifts: clamp instead of overflowing.
 satplus{T}(a::T, b) = oftype(T, clamp(a + b, typemin(T), typemax(T)))
@@ -145,4 +147,4 @@ end # module
 
 # Potential optimizations
 # - Pass in ε_plus_1_sq rather than ε
-# - Optimize saturation arithmetic to be branchless if possible
+# - Optimize saturation arithmetic to be branchless when possible

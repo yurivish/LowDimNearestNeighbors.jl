@@ -81,7 +81,7 @@ function check(result, arr, q)
 end
 
 pts = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
-sort!(pts, lt=shuffless)
+preprocess!(pts)
 qs = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
 for q in qs
 	result = nearest(pts, q)
@@ -94,6 +94,7 @@ immutable Vec2
 end
 Base.getindex(v::Vec2, n::Int) = n == 1 ? v.x : n == 2 ? v.y : throw("Vec2 indexing error.")
 Base.length(v::Vec2) = 2
+Base.rand(::Type{Vec2}) = Vec2(rand(Uint8), rand(Uint8))
 
 immutable Vec3
 	x::Uint8
@@ -102,6 +103,7 @@ immutable Vec3
 end
 Base.getindex(v::Vec3, n::Int) = n == 1 ? v.x : n == 2 ? v.y : n == 3 ? v.z : throw("Vec3 indexing error.")
 Base.length(v::Vec3) = 3
+Base.rand(::Type{Vec3}) = Vec3(rand(Uint8), rand(Uint8), rand(Uint8))
 
 immutable Vec4
 	x::Uint8
@@ -111,12 +113,13 @@ immutable Vec4
 end
 Base.getindex(v::Vec4, n::Int) = n == 1 ? v.x : n == 2 ? v.y : n == 3 ? v.z : n == 4 ? v.w : throw("Vec4 indexing error.")
 Base.length(v::Vec4) = 4
+Base.rand(::Type{Vec4}) = Vec4(rand(Uint8), rand(Uint8), rand(Uint8), rand(Uint8))
 
 function benchmark()
-	arr = [Vec3(rand(Uint8), rand(Uint8), rand(Uint8)) for i in 1:100000]
+	arr = [rand(Vec3) for i in 1:100000]
 	sort!(arr, lt=shuffless)
 	for i in 1:10
-		queries = [Vec3(rand(Uint8), rand(Uint8), rand(Uint8)) for i in 1:100000]
+		queries = [rand(Vec3) for i in 1:100000]
 		@time for q in queries
 			result = nearest(arr, q, 0.0)
 			# check(result, arr, q)
