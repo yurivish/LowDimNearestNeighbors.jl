@@ -35,6 +35,7 @@ shuffless(p, q) = (k = shuffdim(p, q); p[k] < q[k])
 shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
   shuffeq(p, q) = (k = shuffdim(p, q); p[k] == q[k])
 
+# Sort an array by shuffle order to prepare it for nearest-neighbor queries.
 preprocess!(arr) = sort!(arr, lt=shuffless)
 
 # Saturation arithmetic for shifts: clamp instead of overflowing.
@@ -51,8 +52,8 @@ Base.length(s::Shifted) = length(s.data)
 immutable Result{P, Q}
 	point::P
 	r_sq::Uint
-	q_hi::Shifted{Q}
-	q_lo::Shifted{Q}
+	shift_hi::Shifted{Q}
+	shift_lo::Shifted{Q}
 	Result(point::P) = new(point, typemax(Uint))
 	function Result(point::P, r_sq, q::Q)
 		r = iceil(sqrt(r_sq))
@@ -129,10 +130,10 @@ function nearest{P, Q}(arr::Array{P}, q::Q, lo::Uint, hi::Uint, R::Result{P, Q},
 	# point lies inside a particular half.
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R, ε)
-		shuffmore(R.q_hi, arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R, ε))
+		shuffmore(R.shift_hi, arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R, ε))
 	else
 		R = nearest(arr, q, mid + 1, hi, R, ε)
-		shuffless(R.q_lo, arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R, ε))
+		shuffless(R.shift_lo, arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R, ε))
 	end
 
 	R
