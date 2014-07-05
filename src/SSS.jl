@@ -35,18 +35,22 @@ shuffless(p, q) = (k = shuffdim(p, q); p[k] < q[k])
 shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
   shuffeq(p, q) = (k = shuffdim(p, q); p[k] == q[k])
 
-type Result
+immutable Result
 	point
-	r_sq::Float64
+	r_sq::Uint
+	Result(point) = new(point, typemax(Uint))
+	function Result(point, r_sq)
+		# r = iceil(sqrt(r_sq))
+		new(point, r_sq) #, satadd(point, r), satsub(point, r))
+	end
 end
 
 # Euclidean distance, though any p-norm will do.
-# sqdist(p, q) = sum(map(n -> n^2, int(p) - int(q)))
 function sqdist(p, q)
 	@assert length(p) == length(q)
 	@assert length(q) > 0
 
-	d_sq = 0
+	d_sq::Uint = 0
 	for i in 1:length(p)
 		d_sq += (p[i] - q[i])^2
 	end
@@ -71,7 +75,7 @@ function sqdist_to_quadtree_box(q, p1, p2)
 
 	# Calculate and return the squared distance
 	# from q to the bounding box
-	sqdist = 0
+	d_sq::Uint = 0
 	for i in 1:length(q)
 		# Compute the coordinates of the bounding box
 		bbox_lo = (p1[i] >> power) << power
@@ -79,12 +83,12 @@ function sqdist_to_quadtree_box(q, p1, p2)
 
 		# Accumulate squared distance from the box
 		if q[i] < bbox_lo
-			sqdist += (q[i] - bbox_lo)^2
+			d_sq += (q[i] - bbox_lo)^2
 		elseif q[i] > bbox_hi
-			sqdist += (q[i] - bbox_hi)^2
+			d_sq += (q[i] - bbox_hi)^2
 		end
 	end
-	sqdist
+	d_sq
 end
 
 # Saturation arithmetic to clamp instead of overflowing
@@ -107,9 +111,9 @@ function nearest(arr, q, lo::Uint, hi::Uint, R, ε::Float64)
 	# bounding box containing the range is outside of our search radius.
 	(lo == hi || sqdist_to_quadtree_box(q, arr[hi], arr[lo]) * (1.0 + ε)^2 >= R.r_sq) && return R
 
-	# Recurse, à la binary search. Unlike binary search, we occasionally recurse
-	# into the second of the array when we can't guarantee that the nearest point
-	# lies inside it.
+	# Recurse. Unlike binary search, we occasionally recurse into
+	# the second of the array when we can't guarantee that the nearest
+	# point lies outside of it.
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R, ε)
 		shuffmore(satadd(q, iceil(sqrt(R.r_sq))), arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R, ε))
@@ -121,7 +125,7 @@ function nearest(arr, q, lo::Uint, hi::Uint, R, ε::Float64)
 	R
 end
 
-nearest(arr, q) = nearest(arr, q, uint(1), uint(length(arr)), Result(q, Inf), 0.0).point
-nearest(arr, q, ε) = nearest(arr, q, uint(1), uint(length(arr)), Result(q, Inf), ε).point
+nearest(arr, q) = nearest(arr, q, uint(1), uint(length(arr)), Result(arr[1]), 0.0).point
+nearest(arr, q, ε) = nearest(arr, q, uint(1), uint(length(arr)), Result(arr[1]), ε).point
 
 end # module
