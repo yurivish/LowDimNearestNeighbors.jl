@@ -92,7 +92,7 @@ function sqdist_to_quadtree_box(q, p1, p2)
 	# Calculate and return the squared distance
 	# from q to the bounding box
 	# The return value is a float for efficiency;
-	# it will be multiplied by (1.0 + ε)^2 upon return.
+	# it will be multiplied by a float upon return.
 	d_sq = 0.0
 	for i in 1:length(q)
 		# Compute the coordinates of the bounding box
