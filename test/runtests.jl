@@ -66,10 +66,16 @@ end
 function check(result, arr, q)
 	result_linear = nearest_linear(arr, q)
 
-	if sqdist(q, result) != sqdist(q, result_linear)
+
+	sqd_result = sqdist(q, result)
+	sqd_linear = sqdist(q, result_linear)
+	if sqd_result != sqd_linear
+		d_result = sqrt(sqd_result)
+		d_linear = sqrt(sqd_linear)
 		println("Wtf. Searching for ", q, ":")
-		println("\tResult: ", result, "\t", sqdist(result, q))
-		println("\tLinear: ", result_linear, "\t", sqdist(result_linear, q))
+		println("\tResult: ", result, "\t", d_result)
+		println("\tLinear: ", result_linear, "\t", d_linear)
+		println("\t% error: ", 100 * (1 - d_linear / d_result))
 		println()
 	end
 end
@@ -112,7 +118,7 @@ function benchmark()
 	for i in 1:10
 		queries = [Vec3(rand(Uint8), rand(Uint8), rand(Uint8)) for i in 1:100000]
 		@time for q in queries
-			result = nearest(arr, q)
+			result = nearest(arr, q, 0.0)
 			# check(result, arr, q)
 		end
 	end
