@@ -13,16 +13,16 @@ lessmsb(m, n) = m < n && m < (m $ n)
 # Ties are broken in favor of lower-index dimensions;
 # this is a consequence of the order in which the bits
 # are conceptually interleaved.
-function shuffdim(p, q)
+function shuffdim(p, q, pshift=zero(eltype(p)))
 	@assert length(p) == length(q)
 	@assert length(p) > 0
 
 	# For any integers x and y, the most significant
 	# bit of x $ y is the most significant differing
 	# bit between x and y.
-	k, kxor = 1, p[1] $ q[1]
+	k, kxor = 1, satplus(p[1], pshift) $ q[1]
 	for i in 2:length(p)
-		ixor = p[i] $ q[i]
+		ixor = satplus(p[i], pshift) $ q[i]
 		if lessmsb(kxor, ixor)
 			k, kxor = i, ixor
 		end
@@ -35,13 +35,20 @@ shuffless(p, q) = (k = shuffdim(p, q); p[k] < q[k])
 shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
   shuffeq(p, q) = (k = shuffdim(p, q); p[k] == q[k])
 
+shuffless(p, q, pshift) = (k = shuffdim(p, q, pshift); satplus(p[k], pshift) < q[k])
+shuffmore(p, q, pshift) = (k = shuffdim(p, q, pshift); satplus(p[k], pshift) > q[k])
+  shuffeq(p, q, pshift) = (k = shuffdim(p, q, pshift); satplus(p[k], pshift) == q[k])
+
+
 immutable Result
 	point
 	r_sq::Uint
+	lo
+	hi
 	Result(point) = new(point, typemax(Uint))
 	function Result(point, r_sq)
-		# r = iceil(sqrt(r_sq))
-		new(point, r_sq) #, satadd(point, r), satsub(point, r))
+		r = iceil(sqrt(r_sq))
+		new(point, r_sq)# , satsub(point, r), satadd(point, r))
 	end
 end
 
@@ -91,11 +98,10 @@ function sqdist_to_quadtree_box(q, p1, p2)
 	d_sq
 end
 
-# Saturation arithmetic to clamp instead of overflowing
-satadd(p, r) = map(c -> oftype(c, min(c + r, typemax(c))), p)
-satsub(p, r) = map(c -> oftype(c, max(c - r, typemin(c))), p)
+# Saturation arithmetic: clamp instead of overflowing
+satplus{T}(a::T, b) = oftype(T, clamp(a + b, typemin(T), typemax(T)))
 
-function nearest(arr, q, lo::Uint, hi::Uint, R, ε::Float64)
+function nearest(arr::Array, q, lo::Uint, hi::Uint, R::Result, ε::Float64)
 	# Return early if the range is empty.
 	lo > hi && return R
 
@@ -109,23 +115,31 @@ function nearest(arr, q, lo::Uint, hi::Uint, R, ε::Float64)
 
 	# Return early if the range is only one element wide or if the
 	# bounding box containing the range is outside of our search radius.
-	(lo == hi || sqdist_to_quadtree_box(q, arr[hi], arr[lo]) * (1.0 + ε)^2 >= R.r_sq) && return R
+	if lo == hi || sqdist_to_quadtree_box(q, arr[hi], arr[lo]) * (1.0 + ε)^2 >= R.r_sq
+		return R
+	end
 
 	# Recurse. Unlike binary search, we occasionally recurse into
 	# the second of the array when we can't guarantee that the nearest
 	# point lies outside of it.
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R, ε)
-		shuffmore(satadd(q, iceil(sqrt(R.r_sq))), arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R, ε))
+		shuffmore(q, arr[mid], iceil(sqrt(R.r_sq))) &&
+			(R = nearest(arr, q, mid + 1, hi, R, ε))
 	else
 		R = nearest(arr, q, mid + 1, hi, R, ε)
-		shuffless(satsub(q, iceil(sqrt(R.r_sq))), arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R, ε))
+		shuffless(q, arr[mid], -iceil(sqrt(R.r_sq))) &&
+			(R = nearest(arr, q, lo, mid - 1, R, ε))
 	end
 
 	R
 end
 
-nearest(arr, q) = nearest(arr, q, uint(1), uint(length(arr)), Result(arr[1]), 0.0).point
-nearest(arr, q, ε) = nearest(arr, q, uint(1), uint(length(arr)), Result(arr[1]), ε).point
+nearest(arr, q, ε=0.0) = nearest(arr, q, uint(1), uint(length(arr)), Result(arr[1]), ε).point
+
+# Potential optimizations
+# - Reduce memory allocation for the saturation-arithmetic bounding box
+# - Pass in ε_plus_1_sq rather than ε
+# - Optimize saturation arithmetic to be branchless if possible
 
 end # module
