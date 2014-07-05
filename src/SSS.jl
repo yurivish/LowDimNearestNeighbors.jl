@@ -96,7 +96,7 @@ function nearest(arr, q, lo::Uint, hi::Uint, R, ε::Float64)
 
 	# Return early if the range is only one element wide or if the
 	# bounding box containing the range is outside of our search radius.
-	(lo == hi || sqdist_to_quadtree_box(q, arr[hi], arr[lo]) * (1.0 + ε)^2 >= r_sq) && return R
+	(lo == hi || sqdist_to_quadtree_box(q, arr[hi], arr[lo]) * (1.0 + ε)^2 >= R.r_sq) && return R
 
 	# Recurse, à la binary search. Unlike binary search, we occasionally recurse
 	# into the second of the array when we can't guarantee that the nearest point
