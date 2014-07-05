@@ -59,13 +59,12 @@ end
 
 function check(result, arr, q)
 	result_linear = nearest_linear(arr, q)
-
 	sqd_result = sqdist(q, result)
 	sqd_linear = sqdist(q, result_linear)
 	if sqd_result != sqd_linear
 		d_result = sqrt(sqd_result)
 		d_linear = sqrt(sqd_linear)
-		println("Wtf. Searching for ", q, ":")
+		println("Mismatch when searching for ", q, ":")
 		println("\tResult: ", result, "\t", d_result)
 		println("\tLinear: ", result_linear, "\t", d_linear)
 		println("\t% error: ", 100 * (1 - d_linear / d_result))
@@ -108,9 +107,9 @@ Base.length(v::Vec4) = 4
 Base.rand{T}(::Type{Vec4{T}}) = Vec4(rand(T), rand(T), rand(T), rand(T))
 
 function benchmark()
-	arr = preprocess!([rand(Vec3{Uint}) for i in 1:100000])
+	arr = preprocess!([Vec3{Uint}(rand(Uint8), rand(Uint8), rand(Uint8)) for i in 1:100000])
 	for i in 1:10
-		queries = [rand(Vec3{Uint}) for i in 1:100000]
+		queries = [Vec3{Uint}(rand(Uint8), rand(Uint8), rand(Uint8)) for i in 1:100000]
 		@time for q in queries
 			result = nearest(arr, q, 0.0)
 			# check(result, arr, q)
