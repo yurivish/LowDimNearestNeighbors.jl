@@ -13,16 +13,16 @@ lessmsb(m, n) = m < n && m < (m $ n)
 # Ties are broken in favor of lower-index dimensions;
 # this is a consequence of the order in which the bits
 # are conceptually interleaved.
-function shuffdim(p, q, pshift=zero(eltype(p)))
+function shuffdim(p, q)
 	@assert length(p) == length(q)
 	@assert length(p) > 0
 
 	# For any integers x and y, the most significant
 	# bit of x $ y is the most significant differing
 	# bit between x and y.
-	k, kxor = 1, satplus(p[1], pshift) $ q[1]
+	k, kxor = 1, p[1] $ q[1]
 	for i in 2:length(p)
-		ixor = satplus(p[i], pshift) $ q[i]
+		ixor = p[i] $ q[i]
 		if lessmsb(kxor, ixor)
 			k, kxor = i, ixor
 		end
@@ -35,20 +35,13 @@ shuffless(p, q) = (k = shuffdim(p, q); p[k] < q[k])
 shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
   shuffeq(p, q) = (k = shuffdim(p, q); p[k] == q[k])
 
-shuffless(p, q, pshift) = (k = shuffdim(p, q, pshift); satplus(p[k], pshift) < q[k])
-shuffmore(p, q, pshift) = (k = shuffdim(p, q, pshift); satplus(p[k], pshift) > q[k])
-  shuffeq(p, q, pshift) = (k = shuffdim(p, q, pshift); satplus(p[k], pshift) == q[k])
-
-
 immutable Result
 	point
 	r_sq::Uint
-	lo
-	hi
+	r_ceil::Int
 	Result(point) = new(point, typemax(Uint))
 	function Result(point, r_sq)
-		r = iceil(sqrt(r_sq))
-		new(point, r_sq)# , satsub(point, r), satadd(point, r))
+		new(point, r_sq, iceil(sqrt(r_sq)))
 	end
 end
 
@@ -101,7 +94,15 @@ end
 # Saturation arithmetic: clamp instead of overflowing
 satplus{T}(a::T, b) = oftype(T, clamp(a + b, typemin(T), typemax(T)))
 
-function nearest(arr::Array, q, lo::Uint, hi::Uint, R::Result, ε::Float64)
+immutable Shifted{T}
+	data::T
+	shift::Int
+end
+# NOTE: Would it be less efficient to implement a splat version?
+Base.getindex(s::Shifted, n) = satplus(s.data[n], s.shift)
+Base.length(s::Shifted) = length(s.data)
+
+function nearest{T}(arr::Array, q::T, lo::Uint, hi::Uint, R::Result, ε::Float64)
 	# Return early if the range is empty.
 	lo > hi && return R
 
@@ -124,11 +125,11 @@ function nearest(arr::Array, q, lo::Uint, hi::Uint, R::Result, ε::Float64)
 	# point lies outside of it.
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R, ε)
-		shuffmore(q, arr[mid], iceil(sqrt(R.r_sq))) &&
+		shuffmore(Shifted{T}(q, R.r_ceil), arr[mid]) &&
 			(R = nearest(arr, q, mid + 1, hi, R, ε))
 	else
 		R = nearest(arr, q, mid + 1, hi, R, ε)
-		shuffless(q, arr[mid], -iceil(sqrt(R.r_sq))) &&
+		shuffless(Shifted{T}(q, -R.r_ceil), arr[mid]) &&
 			(R = nearest(arr, q, lo, mid - 1, R, ε))
 	end
 
