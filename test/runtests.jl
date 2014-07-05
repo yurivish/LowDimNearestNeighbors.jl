@@ -63,12 +63,8 @@ function nearest_linear(arr, q)
 	best
 end
 
-pts = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
-sort!(pts, lt=shuffless)
-qs = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
-for q in qs
-	result = nearest(pts, q)
-	result_linear = nearest_linear(pts, q)
+function check(result, arr, q)
+	result_linear = nearest_linear(arr, q)
 
 	if sqdist(q, result) != sqdist(q, result_linear)
 		println("Wtf. Searching for ", q, ":")
@@ -78,6 +74,14 @@ for q in qs
 	end
 end
 
+pts = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
+sort!(pts, lt=shuffless)
+qs = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
+for q in qs
+	result = nearest(pts, q)
+	check(result, pts, q)
+end
+
 immutable Vec2
 	x::Uint8
 	y::Uint8
@@ -85,10 +89,33 @@ end
 Base.getindex(v::Vec2, n::Int) = n == 1 ? v.x : n == 2 ? v.y : throw("Vec2 indexing error.")
 Base.length(v::Vec2) = 2
 
-test_pts = [Vec2(rand(Uint8), rand(Uint8)) for i in 1:1000]
-for i in 1:10
-	test_qs = [Vec2(rand(Uint8), rand(Uint8)) for i in 1:10000]
-	@time for q in test_qs
-		result = nearest(test_pts, q)
+immutable Vec3
+	x::Uint8
+	y::Uint8
+	z::Uint8
+end
+Base.getindex(v::Vec3, n::Int) = n == 1 ? v.x : n == 2 ? v.y : n == 3 ? v.z : throw("Vec3 indexing error.")
+Base.length(v::Vec3) = 3
+
+immutable Vec4
+	x::Uint8
+	y::Uint8
+	z::Uint8
+	w::Uint8
+end
+Base.getindex(v::Vec4, n::Int) = n == 1 ? v.x : n == 2 ? v.y : n == 3 ? v.z : n == 4 ? v.w : throw("Vec4 indexing error.")
+Base.length(v::Vec4) = 4
+
+function benchmark()
+	arr = [Vec3(rand(Uint8), rand(Uint8), rand(Uint8)) for i in 1:100000]
+	sort!(arr, lt=shuffless)
+	for i in 1:10
+		queries = [Vec3(rand(Uint8), rand(Uint8), rand(Uint8)) for i in 1:100000]
+		@time for q in queries
+			result = nearest(arr, q)
+			# check(result, arr, q)
+		end
 	end
 end
+
+benchmark()

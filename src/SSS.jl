@@ -35,22 +35,24 @@ shuffless(p, q) = (k = shuffdim(p, q); p[k] < q[k])
 shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
   shuffeq(p, q) = (k = shuffdim(p, q); p[k] == q[k])
 
+# Saturation arithmetic for shifts: clamp instead of overflowing.
+satplus{T}(a::T, b) = oftype(T, clamp(a + b, typemin(T), typemax(T)))
+
+# Represent shifted points by their own type.
 immutable Shifted{Q}
 	data::Q
 	shift::Int
 end
-# Saturation arithmetic: clamp instead of overflowing
-satplus{T}(a::T, b) = oftype(T, clamp(a + b, typemin(T), typemax(T)))
 Base.getindex(s::Shifted, args...) = satplus(s.data[args...], s.shift)
 Base.length(s::Shifted) = length(s.data)
 
-immutable Result{Q}
-	point
+immutable Result{P, Q}
+	point::P
 	r_sq::Uint
-	q_shifted_hi::Shifted{Q}
-	q_shifted_lo::Shifted{Q}
-	Result(point) = new(point, typemax(Uint))
-	function Result(point, r_sq, q::Q)
+	q_hi::Shifted{Q}
+	q_lo::Shifted{Q}
+	Result(point::P) = new(point, typemax(Uint))
+	function Result(point::P, r_sq, q::Q)
 		r = iceil(sqrt(r_sq))
 		new(point, r_sq, Shifted{Q}(q, r), Shifted{Q}(q, -r))
 	end
@@ -102,7 +104,7 @@ function sqdist_to_quadtree_box(q, p1, p2)
 	d_sq
 end
 
-function nearest{Q}(arr::Array, q::Q, lo::Uint, hi::Uint, R::Result{Q}, ε::Float64)
+function nearest{P, Q}(arr::Array{P}, q::Q, lo::Uint, hi::Uint, R::Result{P, Q}, ε::Float64)
 	# Return early if the range is empty.
 	lo > hi && return R
 
@@ -112,7 +114,7 @@ function nearest{Q}(arr::Array, q::Q, lo::Uint, hi::Uint, R::Result{Q}, ε::Floa
 	# Compute the distance from the probe point to the query point,
 	# and update the result if it's closer than our best match so far.
 	r_sq = sqdist(arr[mid], q)
-	r_sq < R.r_sq && (R = Result{Q}(arr[mid], r_sq, q))
+	r_sq < R.r_sq && (R = Result{P, Q}(arr[mid], r_sq, q))
 
 	# Return early if the range is only one element wide or if the
 	# bounding box containing the range is outside of our search radius.
@@ -121,26 +123,26 @@ function nearest{Q}(arr::Array, q::Q, lo::Uint, hi::Uint, R::Result{Q}, ε::Floa
 	end
 
 	# Recurse. Unlike binary search, we occasionally recurse into
-	# the second of the array when we can't guarantee that the nearest
-	# point lies outside of it.
+	# both halves of the array when we can't guarantee that the nearest
+	# point lies inside a particular half.
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R, ε)
-		shuffmore(R.q_shifted_hi, arr[mid]) &&
-			(R = nearest(arr, q, mid + 1, hi, R, ε))
+		shuffmore(R.q_hi, arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R, ε))
 	else
 		R = nearest(arr, q, mid + 1, hi, R, ε)
-		shuffless(R.q_shifted_lo, arr[mid]) &&
-			(R = nearest(arr, q, lo, mid - 1, R, ε))
+		shuffless(R.q_lo, arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R, ε))
 	end
 
 	R
 end
 
-nearest{Q}(arr, q::Q, ε=0.0) = nearest(arr, q, uint(1), uint(length(arr)), Result{Q}(arr[1]), ε).point
-
-# Potential optimizations
-# - Reduce memory allocation for the saturation-arithmetic bounding box
-# - Pass in ε_plus_1_sq rather than ε
-# - Optimize saturation arithmetic to be branchless if possible
+function nearest{P, Q}(arr::Array{P}, q::Q, ε=0.0)
+	@assert length(arr) > 0
+	nearest(arr, q, uint(1), uint(length(arr)), Result{P, Q}(arr[1]), ε).point
+end
 
 end # module
+
+# Potential optimizations
+# - Pass in ε_plus_1_sq rather than ε
+# - Optimize saturation arithmetic to be branchless if possible
