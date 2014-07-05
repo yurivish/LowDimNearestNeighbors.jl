@@ -46,14 +46,8 @@ shuffdim = SSS.shuffdim
 
 #
 
-# println(SSS.satadd([0x01, 0xdd], 100))
-# println(SSS.satsub([0x01, 0xdd], 100))
-
-#
-
 sqdist = SSS.sqdist
 function nearest_linear(arr, q)
-	# arr[indmin(p -> sqdist(p, q), arr)]
 	best, best_sqdist = q, Inf
 	for point in arr
 		if sqdist(point, q) < best_sqdist
@@ -65,7 +59,6 @@ end
 
 function check(result, arr, q)
 	result_linear = nearest_linear(arr, q)
-
 
 	sqd_result = sqdist(q, result)
 	sqd_linear = sqdist(q, result_linear)
@@ -80,46 +73,44 @@ function check(result, arr, q)
 	end
 end
 
-pts = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
-preprocess!(pts)
+points = preprocess!([[rand(Uint8), rand(Uint8)] for i in 1:1000])
 qs = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
 for q in qs
-	result = nearest(pts, q)
-	check(result, pts, q)
+	result = nearest(points, q)
+	check(result, points, q)
 end
 
-immutable Vec2
-	x::Uint8
-	y::Uint8
+immutable Vec2{T}
+	x::T
+	y::T
 end
 Base.getindex(v::Vec2, n::Int) = n == 1 ? v.x : n == 2 ? v.y : throw("Vec2 indexing error.")
 Base.length(v::Vec2) = 2
-Base.rand(::Type{Vec2}) = Vec2(rand(Uint8), rand(Uint8))
+Base.rand{T}(::Type{Vec2{T}}) = Vec2(rand(T), rand(T))
 
-immutable Vec3
-	x::Uint8
-	y::Uint8
-	z::Uint8
+immutable Vec3{T}
+	x::T
+	y::T
+	z::T
 end
 Base.getindex(v::Vec3, n::Int) = n == 1 ? v.x : n == 2 ? v.y : n == 3 ? v.z : throw("Vec3 indexing error.")
 Base.length(v::Vec3) = 3
-Base.rand(::Type{Vec3}) = Vec3(rand(Uint8), rand(Uint8), rand(Uint8))
+Base.rand{T}(::Type{Vec3{T}}) = Vec3(rand(T), rand(T), rand(T))
 
-immutable Vec4
-	x::Uint8
-	y::Uint8
-	z::Uint8
-	w::Uint8
+immutable Vec4{T}
+	x::T
+	y::T
+	z::T
+	w::T
 end
 Base.getindex(v::Vec4, n::Int) = n == 1 ? v.x : n == 2 ? v.y : n == 3 ? v.z : n == 4 ? v.w : throw("Vec4 indexing error.")
 Base.length(v::Vec4) = 4
-Base.rand(::Type{Vec4}) = Vec4(rand(Uint8), rand(Uint8), rand(Uint8), rand(Uint8))
+Base.rand{T}(::Type{Vec4{T}}) = Vec4(rand(T), rand(T), rand(T), rand(T))
 
 function benchmark()
-	arr = [rand(Vec2) for i in 1:100000]
-	preprocess!(arr)
+	arr = preprocess!([rand(Vec3{Uint8}) for i in 1:100000])
 	for i in 1:10
-		queries = [rand(Vec2) for i in 1:100000]
+		queries = [rand(Vec3{Uint8}) for i in 1:100000]
 		@time for q in queries
 			result = nearest(arr, q, 0.0)
 			# check(result, arr, q)
