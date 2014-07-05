@@ -68,6 +68,7 @@ function sqdist_to_quadtree_box(q, p1, p2)
 		bbox_lo = (p1[i] >> power) << power
 		bbox_hi = bbox_lo + size
 
+		# Accumulate squared distance in this dimension
 		if q[i] < bbox_lo
 			sqdist += (q[i] - bbox_lo)^2
 		elseif q[i] > bbox_hi
@@ -100,13 +101,12 @@ function nearest(arr, q, lo::Uint, hi::Uint, R)
 	# Recurse, à la binary search. Unlike binary search, we occasionally recurse
 	# into the second of the array when we can't guarantee that the nearest point
 	# lies inside it.
-	r = sqrt(r_sq)
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R)
-		shuffmore(satadd(q, iceil(r)), arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R))
+		shuffmore(satadd(q, iceil(sqrt(R.r_sq))), arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R))
 	else
 		R = nearest(arr, q, mid + 1, hi, R)
-		shuffless(satsub(q, iceil(r)), arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R))
+		shuffless(satsub(q, iceil(sqrt(R.r_sq))), arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R))
 	end
 
 	R

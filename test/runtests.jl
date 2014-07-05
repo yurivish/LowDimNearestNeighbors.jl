@@ -65,7 +65,7 @@ end
 
 pts = [[rand(Uint8), rand(Uint8)] for i in 1:1000]
 sort!(pts, lt=shuffless)
-@time for i in 1:100
+@time for i in 1:2000
 	q = [rand(Uint8), rand(Uint8)]
 	result = nearest(pts, q)
 	result_linear = nearest_linear(pts, q)
