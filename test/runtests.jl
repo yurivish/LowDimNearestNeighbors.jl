@@ -108,9 +108,9 @@ Base.length(v::Vec4) = 4
 Base.rand{T}(::Type{Vec4{T}}) = Vec4(rand(T), rand(T), rand(T), rand(T))
 
 function benchmark()
-	arr = preprocess!([rand(Vec3{Uint8}) for i in 1:100000])
+	arr = preprocess!([rand(Vec3{Uint}) for i in 1:100000])
 	for i in 1:10
-		queries = [rand(Vec3{Uint8}) for i in 1:100000]
+		queries = [rand(Vec3{Uint}) for i in 1:100000]
 		@time for q in queries
 			result = nearest(arr, q, 0.0)
 			# check(result, arr, q)
