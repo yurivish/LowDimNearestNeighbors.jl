@@ -89,8 +89,7 @@ function sqdist_to_quadtree_box(q, p1, p2)
 	power = xor == 0 ? 1 : 1 + exponent(float(xor))
 	size = (1 << power)
 
-	# Calculate and return the squared distance
-	# from q to the bounding box
+	# Calculate the squared distance from q to the box.
 	# The return value is a float for efficiency;
 	# it will be multiplied by a float upon return.
 	d_sq = 0.0
