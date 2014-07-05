@@ -78,7 +78,7 @@ for q in qs
 	end
 end
 
-for i in 1:5
+for i in 1:10
 	qs = [[rand(Uint8), rand(Uint8)] for i in 1:10000]
 	@time for q in qs
 		result = nearest(pts, q)
