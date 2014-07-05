@@ -14,8 +14,8 @@ lessmsb(m, n) = m < n && m < (m $ n)
 # this is a consequence of the order in which the bits
 # are conceptually interleaved.
 function shuffdim(p, q)
-	@assert length(p) > 0 && length(q) > 0
 	@assert length(p) == length(q)
+	@assert length(p) > 0
 
 	# For any integers x and y, the most significant
 	# bit of x $ y is the most significant differing
@@ -30,7 +30,7 @@ function shuffdim(p, q)
 	k
 end
 
-# Define shuffle-order less-than, more-than, and equality.
+# Define less-than, more-than, and equality.
 shuffless(p, q) = (k = shuffdim(p, q); p[k] < q[k])
 shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
   shuffeq(p, q) = (k = shuffdim(p, q); p[k] == q[k])
@@ -41,34 +41,33 @@ type Result
 end
 
 # Euclidean distance, though any p-norm will do.
-# dist(p, q) = norm(int(p) - int(q))
-# Squared euclidean distance, though any p-norm will do.
 sqdist(p, q) = sum(map(n -> n^2, int(p) - int(q)))
 
 function sqdist_to_quadtree_box(q, p1, p2)
 	@assert length(q) == length(p1) == length(p2)
-	@assert length(q) > 0 && length(p1) > 0 && length(p2) > 0
+	@assert length(q) > 0
 
-	# Find the most significant differing bit between p1 and p2
+	# Find the most significant differing bit of p1 and p2
 	xor = p1[1] $ p2[1]
 	for i in 2:length(p1)
 		ixor = p1[i] $ p2[i]
 		lessmsb(xor, ixor) && (xor = ixor)
 	end
 
-	# The size and power-of-two of the smallest quadtree-aligned
-	# bounding box that encompasses p1 and p2
+	# The size and power-of-two of the quadtree-aligned
+	# bounding box that most snugly encloses p1 and p2
 	power = xor == 0 ? 1 : 1 + exponent(float(xor))
 	size = (1 << power)
 
-	# Calculate the distance from q to the bounding box
+	# Calculate and return the squared distance
+	# from q to the bounding box
 	sqdist = 0
 	for i in 1:length(q)
-		# Compute the coordinates of the bounding box in this dimension
+		# Compute the coordinates of the bounding box
 		bbox_lo = (p1[i] >> power) << power
 		bbox_hi = bbox_lo + size
 
-		# Accumulate squared distance in this dimension
+		# Accumulate squared distance from the box
 		if q[i] < bbox_lo
 			sqdist += (q[i] - bbox_lo)^2
 		elseif q[i] > bbox_hi
@@ -78,7 +77,7 @@ function sqdist_to_quadtree_box(q, p1, p2)
 	sqdist
 end
 
-# Saturation arithmetic for shifting points without running into overflows
+# Saturation arithmetic to clamp instead of overflowing
 satadd(p, r) = map(c -> oftype(c, min(c + r, typemax(c))), p)
 satsub(p, r) = map(c -> oftype(c, max(c - r, typemin(c))), p)
 
