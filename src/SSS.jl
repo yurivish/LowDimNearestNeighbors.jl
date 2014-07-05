@@ -39,7 +39,7 @@ immutable Result
 	point
 	r_sq::Uint
 	r_ceil::Int
-	Result(point) = new(point, typemax(Uint))
+	Result(point) = new(point, typemax(Uint), typemax(Uint))
 	function Result(point, r_sq)
 		new(point, r_sq, iceil(sqrt(r_sq)))
 	end
@@ -98,8 +98,7 @@ immutable Shifted{T}
 	data::T
 	shift::Int
 end
-# NOTE: Would it be less efficient to implement a splat version?
-Base.getindex(s::Shifted, n) = satplus(s.data[n], s.shift)
+Base.getindex(s::Shifted, args...) = satplus(s.data[args...], s.shift)
 Base.length(s::Shifted) = length(s.data)
 
 function nearest{T}(arr::Array, q::T, lo::Uint, hi::Uint, R::Result, ε::Float64)
