@@ -35,13 +35,24 @@ shuffless(p, q) = (k = shuffdim(p, q); p[k] < q[k])
 shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
   shuffeq(p, q) = (k = shuffdim(p, q); p[k] == q[k])
 
-immutable Result
+immutable Shifted{Q}
+	data::Q
+	shift::Int
+end
+# Saturation arithmetic: clamp instead of overflowing
+satplus{T}(a::T, b) = oftype(T, clamp(a + b, typemin(T), typemax(T)))
+Base.getindex(s::Shifted, args...) = satplus(s.data[args...], s.shift)
+Base.length(s::Shifted) = length(s.data)
+
+immutable Result{Q}
 	point
 	r_sq::Uint
-	r_ceil::Int
-	Result(point) = new(point, typemax(Uint), typemax(Uint))
-	function Result(point, r_sq)
-		new(point, r_sq, iceil(sqrt(r_sq)))
+	q_shifted_hi::Shifted{Q}
+	q_shifted_lo::Shifted{Q}
+	Result(point) = new(point, typemax(Uint))
+	function Result(point, r_sq, q::Q)
+		r = iceil(sqrt(r_sq))
+		new(point, r_sq, Shifted{Q}(q, r), Shifted{Q}(q, -r))
 	end
 end
 
@@ -91,17 +102,7 @@ function sqdist_to_quadtree_box(q, p1, p2)
 	d_sq
 end
 
-# Saturation arithmetic: clamp instead of overflowing
-satplus{T}(a::T, b) = oftype(T, clamp(a + b, typemin(T), typemax(T)))
-
-immutable Shifted{T}
-	data::T
-	shift::Int
-end
-Base.getindex(s::Shifted, args...) = satplus(s.data[args...], s.shift)
-Base.length(s::Shifted) = length(s.data)
-
-function nearest{T}(arr::Array, q::T, lo::Uint, hi::Uint, R::Result, ε::Float64)
+function nearest{Q}(arr::Array, q::Q, lo::Uint, hi::Uint, R::Result{Q}, ε::Float64)
 	# Return early if the range is empty.
 	lo > hi && return R
 
@@ -111,7 +112,7 @@ function nearest{T}(arr::Array, q::T, lo::Uint, hi::Uint, R::Result, ε::Float64
 	# Compute the distance from the probe point to the query point,
 	# and update the result if it's closer than our best match so far.
 	r_sq = sqdist(arr[mid], q)
-	r_sq < R.r_sq && (R = Result(arr[mid], r_sq))
+	r_sq < R.r_sq && (R = Result{Q}(arr[mid], r_sq, q))
 
 	# Return early if the range is only one element wide or if the
 	# bounding box containing the range is outside of our search radius.
@@ -124,18 +125,18 @@ function nearest{T}(arr::Array, q::T, lo::Uint, hi::Uint, R::Result, ε::Float64
 	# point lies outside of it.
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R, ε)
-		shuffmore(Shifted{T}(q, R.r_ceil), arr[mid]) &&
+		shuffmore(R.q_shifted_hi, arr[mid]) &&
 			(R = nearest(arr, q, mid + 1, hi, R, ε))
 	else
 		R = nearest(arr, q, mid + 1, hi, R, ε)
-		shuffless(Shifted{T}(q, -R.r_ceil), arr[mid]) &&
+		shuffless(R.q_shifted_lo, arr[mid]) &&
 			(R = nearest(arr, q, lo, mid - 1, R, ε))
 	end
 
 	R
 end
 
-nearest(arr, q, ε=0.0) = nearest(arr, q, uint(1), uint(length(arr)), Result(arr[1]), ε).point
+nearest{Q}(arr, q::Q, ε=0.0) = nearest(arr, q, uint(1), uint(length(arr)), Result{Q}(arr[1]), ε).point
 
 # Potential optimizations
 # - Reduce memory allocation for the saturation-arithmetic bounding box

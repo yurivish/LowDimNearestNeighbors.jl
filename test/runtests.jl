@@ -78,9 +78,17 @@ for q in qs
 	end
 end
 
+immutable Vec2
+	x::Uint8
+	y::Uint8
+end
+Base.getindex(v::Vec2, n::Int) = n == 1 ? v.x : n == 2 ? v.y : throw("Vec2 indexing error.")
+Base.length(v::Vec2) = 2
+
+test_pts = [Vec2(rand(Uint8), rand(Uint8)) for i in 1:1000]
 for i in 1:10
-	qs = [[rand(Uint8), rand(Uint8)] for i in 1:10000]
-	@time for q in qs
-		result = nearest(pts, q)
+	test_qs = [Vec2(rand(Uint8), rand(Uint8)) for i in 1:10000]
+	@time for q in test_qs
+		result = nearest(test_pts, q)
 	end
 end
