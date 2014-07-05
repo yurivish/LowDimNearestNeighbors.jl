@@ -41,7 +41,17 @@ type Result
 end
 
 # Euclidean distance, though any p-norm will do.
-sqdist(p, q) = sum(map(n -> n^2, int(p) - int(q)))
+# sqdist(p, q) = sum(map(n -> n^2, int(p) - int(q)))
+function sqdist(p, q)
+	@assert length(p) == length(q)
+	@assert length(q) > 0
+
+	d_sq = 0
+	for i in 1:length(p)
+		d_sq += (p[i] - q[i])^2
+	end
+	d_sq
+end
 
 function sqdist_to_quadtree_box(q, p1, p2)
 	@assert length(q) == length(p1) == length(p2)
