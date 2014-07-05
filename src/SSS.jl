@@ -82,7 +82,7 @@ end
 satadd(p, r) = map(c -> oftype(c, min(c + r, typemax(c))), p)
 satsub(p, r) = map(c -> oftype(c, max(c - r, typemin(c))), p)
 
-function nearest(arr, q, lo::Uint, hi::Uint, R)
+function nearest(arr, q, lo::Uint, hi::Uint, R, ε::Float64)
 	# Return early if the range is empty.
 	lo > hi && return R
 
@@ -96,22 +96,23 @@ function nearest(arr, q, lo::Uint, hi::Uint, R)
 
 	# Return early if the range is only one element wide or if the
 	# bounding box containing the range is outside of our search radius.
-	(lo == hi || sqdist_to_quadtree_box(q, arr[hi], arr[lo]) >= r_sq) && return R
+	(lo == hi || sqdist_to_quadtree_box(q, arr[hi], arr[lo]) * (1.0 + ε)^2 >= r_sq) && return R
 
 	# Recurse, à la binary search. Unlike binary search, we occasionally recurse
 	# into the second of the array when we can't guarantee that the nearest point
 	# lies inside it.
 	if shuffless(q, arr[mid])
-		R = nearest(arr, q, lo, mid - 1, R)
-		shuffmore(satadd(q, iceil(sqrt(R.r_sq))), arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R))
+		R = nearest(arr, q, lo, mid - 1, R, ε)
+		shuffmore(satadd(q, iceil(sqrt(R.r_sq))), arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R, ε))
 	else
-		R = nearest(arr, q, mid + 1, hi, R)
-		shuffless(satsub(q, iceil(sqrt(R.r_sq))), arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R))
+		R = nearest(arr, q, mid + 1, hi, R, ε)
+		shuffless(satsub(q, iceil(sqrt(R.r_sq))), arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R, ε))
 	end
 
 	R
 end
 
-nearest(arr, q) = nearest(arr, q, uint(1), uint(length(arr)), Result(q, Inf)).point
+nearest(arr, q) = nearest(arr, q, uint(1), uint(length(arr)), Result(q, Inf), 0.0).point
+nearest(arr, q, ε) = nearest(arr, q, uint(1), uint(length(arr)), Result(q, Inf), ε).point
 
 end # module
