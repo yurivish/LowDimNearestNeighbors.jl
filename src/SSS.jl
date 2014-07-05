@@ -49,9 +49,9 @@ lessmsb(m, n) = m < n && m < (m $ n)
 function shuffdim(p, q)
 	# We want to compare two points according to their shuffle order.
 	# This helper function takes two points and returns the dimension
-	# that contains the highest differing bit between p and q. This is
-	# the bit that determines shuffle order. # If p and q are identical,
-	# return dimension 1.
+	# with the highest differing bit between p and q. This is
+	# the bit that determines shuffle order.
+	# If p and q are identical, return dimension 1.
 	# Conceptually, bits are interleaved in xyzxyzxyzxyz form, which
 	# is the reason that we loop through dimensions in xyz order.
 
@@ -59,6 +59,7 @@ function shuffdim(p, q)
 
 	# lessmsb(a$b, c$d) tells you which of {a, b} or {c, d} has the highest-index
 	# bit along which they differ.
+	# The reason for this is that xor(same, same) == 0 and xor(same, different) == 1
 	k = 1
 	kxor = p[k] $ q[k]
 	for i in 2:length(p)
@@ -80,22 +81,27 @@ type Result
 	r::Float64
 end
 
-dist(p, q) = norm(int(p) - int(q)) # sqrt(sum(map(n -> n^2, p - q)))
+dist(p, q) = norm(int(p) - int(q))
 
-function dist_to_quadtree_box(p, lo, hi)
-	k = shuffdim(lo, hi)
-	xor = lo[k] $ hi[k]
-	power = xor == 0 ? 1 : 1 + exponent(float(xor))
+function dist_to_quadtree_box(point, p1, p2)
+	# Like the loop in shuffdim, except we don't track the dimension.
+	# What we care about is the position of the highest differing bit.
+	xor = 0
+	for i in 1:length(p1)
+		ixor = p1[i] $ p2[i]
+		lessmsb(xor, ixor) && (xor = ixor)
+	end
+	power = xor == 0 ? 1 : 1 + ifloor(log2(xor))
 
 	sqdist::Uint = 0
-	for i in 1:length(p)
-		box_lo = (lo[i] >> power) << power
-		box_hi = box_lo + (1 << power)
+	for i in 1:length(point)
+		bbox_lo = (p1[i] >> power) << power
+		bbox_hi = bbox_lo + (1 << power)
 
-		if p[i] < box_lo
-			sqdist += (p[i] - box_lo)^2
-		elseif p[i] > box_hi
-			sqdist += (p[i] - box_hi)^2
+		if point[i] < bbox_lo
+			sqdist += (point[i] - bbox_lo)^2
+		elseif point[i] > bbox_hi
+			sqdist += (point[i] - bbox_hi)^2
 		end
 	end
 	sqrt(sqdist)
@@ -110,7 +116,7 @@ function nearest(arr, q, lo::Uint, hi::Uint, R)
 	r = dist(arr[mid], q)
 	r < R.r && (R = Result(arr[mid], r))
 	lo == hi && return R
-	dist_to_quadtree_box(q, arr[lo], arr[hi]) >= r && return R
+	dist_to_quadtree_box(q, arr[hi], arr[lo]) >= r && return R
 
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R)
