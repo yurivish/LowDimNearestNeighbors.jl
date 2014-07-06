@@ -1,6 +1,6 @@
 # Nearest-Neighbor Search in Low Dimensions
 
-This package implements approximate nearest-neighbor search in multiple dimensions for points with integer coordinates based on an elegant idea from a 2006 [paper](http://cs.uwaterloo.ca/~tmchan/sss.ps) by Timothy M. Chan.
+This package implements approximate nearest-neighbor search in low dimensions for points with integer coordinates based on an elegant idea from a 2006 [paper](http://cs.uwaterloo.ca/~tmchan/sss.ps) by Timothy M. Chan.
 
 ```julia
 	using SSS
@@ -25,6 +25,8 @@ This package implements approximate nearest-neighbor search in multiple dimensio
 ```
 
 ## Notes
+
+The approach here works best in low dimensions (2, 3, 4) and has been used to some success to implement nearest-neighbor search in RGB color space. The code is generic and will work for points in arbitrary dimension -- just implement `getindex` and `length`.
 
 The algorithm is _in-place_, i.e. it requires no extra space beyond the input array. Instead, spatial information is encoded in the permutation of points. The preprocessing step sorts the array to prepare for efficient queries.
 
