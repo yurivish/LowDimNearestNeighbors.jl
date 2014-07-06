@@ -76,13 +76,12 @@ shuffdim = SSS.shuffdim
 
 # Test preprocess!
 let
-	V2 = Vec2{Int64}
-	arr = [V2(1, 1), V2(0, 1), V2(1, 0), V2(0, 0)]
+	arr = [Vec2(1, 1), Vec2(0, 1), Vec2(1, 0), Vec2(0, 0)]
 	preprocess!(arr)
-	@test arr[1] == V2(0, 0)
-	@test arr[2] == V2(0, 1)
-	@test arr[3] == V2(1, 0)
-	@test arr[4] == V2(1, 1)
+	@test arr[1] == Vec2(0, 0)
+	@test arr[2] == Vec2(0, 1)
+	@test arr[3] == Vec2(1, 0)
+	@test arr[4] == Vec2(1, 1)
 end
 
 # Test Shifted indexing and length
@@ -118,6 +117,15 @@ end
 
 # Test nearest
 let
+	# Deterministic test
+	arr = preprocess!([Vec2(3, 3), Vec2(10, 0), Vec2(5, 8)])
+	@test nearest(arr, Vec2(0, 0)) == Vec2(3, 3)
+	@test nearest(arr, Vec2(8, 1)) == Vec2(10, 0)
+	@test nearest(arr, Vec2(1000, 1000)) == Vec2(5, 8)
+	@test nearest(arr, Vec2(5, 8)) == Vec2(5, 8)
+	@test nearest(arr, Vec2(5.7, 8.1)) == Vec2(5, 8)
+
+	# Randomized test
 	sqdist = SSS.sqdist
 	function linear_nearest(arr, q)
 		local best
@@ -136,7 +144,7 @@ let
 		for q in queries
 			result = nearest(arr, q)
 			result_sqdist = sqdist(q, result)
-			
+
 			correct_result = linear_nearest(arr, q)
 			correct_sqdist = sqdist(q, correct_result)
 
@@ -155,5 +163,5 @@ let
 	end
 
 	srand(0)
-	test(1000, 10000)
+	test(1000, 1000)
 end

@@ -68,7 +68,7 @@ function sqdist(p, q)
 
 	d_sq::Uint = 0
 	for i in 1:length(p)
-		d_sq += (p[i] - q[i])^2
+		d_sq += uint((p[i] - q[i])^2) # Note: uint() rounds
 	end
 	d_sq
 end
