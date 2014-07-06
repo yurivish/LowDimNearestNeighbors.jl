@@ -41,7 +41,7 @@ shuffless(p, q) = (k = shuffdim(p, q); p[k] < q[k])
 shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
   shuffeq(p, q) = (k = shuffdim(p, q); p[k] == q[k])
 
-# Sort an array by shuffle order to prepare it for nearest-neighbor queries.
+# Sort the given array in shuffle order to prepare it for nearest-neighbor queries.
 function preprocess!(arr)
 	for p in arr
 		for i in length(p)
@@ -123,26 +123,26 @@ function sqdist_to_quadtree_box(q, p1, p2)
 end
 
 function nearest{P, Q}(arr::Array{P}, q::Q, lo::Uint, hi::Uint, R::Result{P, Q}, ε::Float64)
-	# Return early if the range is empty.
+	# Return early if the range is empty
 	lo > hi && return R
 
-	# Calculate the midpoint of the range, avoiding midpoint overflow.
+	# Calculate the midpoint of the range, avoiding midpoint overflow
 	mid = (lo + hi) >>> 1
 
 	# Compute the distance from the probe point to the query point,
-	# and update the result if it's closer than our best match so far.
+	# and update the result if it's closer than our best match so far
 	r_sq = sqdist(arr[mid], q)
 	r_sq < R.r_sq && (R = Result{P, Q}(arr[mid], r_sq, q))
 
 	# Return early if the range is only one element wide or if the
-	# bounding box containing the range is outside of our search radius.
+	# bounding box containing the range is outside of the search radius
 	if lo == hi || sqdist_to_quadtree_box(q, arr[hi], arr[lo]) * (1.0 + ε)^2 >= R.r_sq
 		return R
 	end
 
 	# Recurse. Unlike binary search, we occasionally recurse into
 	# both halves of the array when we can't guarantee that the nearest
-	# point lies inside a particular half.
+	# point lies outside the other half
 	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R, ε)
 		shuffmore(R.bbox_hi, arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R, ε))
