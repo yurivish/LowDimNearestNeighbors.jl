@@ -1,3 +1,9 @@
+# An implementation of the ideas described in A Minimalist's
+# Implementation of an Approximate Nearest Neighbor Algorithm
+# in Fixed Dimensions.
+# Paper: http://cs.uwaterloo.ca/~tmchan/sss.ps
+# Further reading: http://en.wikipedia.org/wiki/Z-order_curve
+
 module SSS
 
 export shuffless, shuffmore, shuffeq, preprocess!, nearest
