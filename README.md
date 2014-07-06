@@ -1,6 +1,6 @@
 # Nearest-Neighbor Search in Low Dimensions
 
-This package implements approximate nearest-neighbor search in multiple dimensions for points with integer coordinates. The idea is from a 2006 [paper](http://cs.uwaterloo.ca/~tmchan/sss.ps) by Timothy M. Chan.
+This package implements approximate nearest-neighbor search in multiple dimensions for points with integer coordinates based on an elegant idea from a 2006 [paper](http://cs.uwaterloo.ca/~tmchan/sss.ps) by Timothy M. Chan.
 
 ```julia
 	using SSS
