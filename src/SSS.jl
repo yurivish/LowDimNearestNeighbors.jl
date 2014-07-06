@@ -136,7 +136,7 @@ function nearest{P, Q}(arr::Array{P}, q::Q, lo::Uint, hi::Uint, R::Result{P, Q},
 
 	# Return early if the range is only one element wide or if the
 	# bounding box containing the range is outside of the search radius
-	if lo == hi || sqdist_to_quadtree_box(q, arr[hi], arr[lo]) * (1.0 + ε)^2 >= R.r_sq
+	if lo == hi || sqdist_to_quadtree_box(q, arr[lo], arr[hi]) * (1.0 + ε)^2 >= R.r_sq
 		return R
 	end
 
@@ -159,17 +159,18 @@ function nearest{P, Q}(arr::Array{P}, q::Q, ε=0.0)
 	nearest(arr, q, uint(1), uint(length(arr)), Result{P, Q}(arr[1]), ε).point
 end
 
-# Nearest-neighbor search on binary search trees with
+# Nearest-neighbor search on a binary search tree with unique
 # elements in shuffle order. Assumes the tree implements
 # key, left, right, isempty, minimum, and maximum.
-# The code follows the shape of the array version.
+# The code follows the shape of the array version above.
 function nearest{P, Q}(t, q::Q, R::Result{P, Q}, ε::Float64)
 	isempty(t) && return R
 
 	r_sq = sqdist(key(t), q)
 	r_sq < R.r_sq && (R = Result{P, Q}(key(t), r_sq, q))
 
-	if (isempty(left(t)) && isempty(right(t))) || sqdist_to_quadtree_box(q, maximum(t), minimum(t)) * (1.0 + ε)^2 >= R.r_sq
+	min, max = minimum(t), maximum(t)
+	if min == max || sqdist_to_quadtree_box(q, min, max) * (1.0 + ε)^2 >= R.r_sq
 		return R
 	end
 
@@ -184,9 +185,9 @@ function nearest{P, Q}(t, q::Q, R::Result{P, Q}, ε::Float64)
 	R
 end
 
-function nearest{P, Q}(t, q::Q, ε=0.0)
-	@assert !isempty(t) "Searching for the nearest in an empty treap"
-	nearest(t, q, Result{P, Q}(key(t)), ε).point
+function nearest{Q}(t, q::Q, ε=0.0)
+	@assert !isempty(t) "Searching for the nearest in an empty tree"
+	nearest(t, q, Result{typeof(key(t)), Q}(key(t)), ε).point
 end
 
 end # module
