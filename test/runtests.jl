@@ -82,6 +82,13 @@ let
 	@test arr[2] == Vec2(0, 1)
 	@test arr[3] == Vec2(1, 0)
 	@test arr[4] == Vec2(1, 1)
+
+	# # Error on negative coordinates
+	@test_throws preprocess!([1, 2, -3]) ErrorException
+
+	# Error on noninteger coordinates
+	@test_throws preprocess!([1, 2.2, 3]) ErrorException
+	@test_throws preprocess!([1, 2.0, 3]) ErrorException
 end
 
 # Test Shifted indexing and length
@@ -100,6 +107,7 @@ let
 	@test sqdist(2, 3) == 1
 	@test sqdist(2, 4) == 4
 	@test sqdist(Vec2(3, 0), Vec2(0, 4)) == 5*5
+	@test_throws sqdist(Vec2(1, 1), Vec2(typemax(Uint), typemax(Uint)) ErrorException
 end
 
 # Test sqdist_to_quadtree_box

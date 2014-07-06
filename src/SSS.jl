@@ -43,12 +43,10 @@ shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
 
 # Sort an array by shuffle order to prepare it for nearest-neighbor queries.
 function preprocess!(arr)
-	# Assert that all coordinates are nonnegative. This is a
-	# requirement for this algorithm, which works for nonnegative integer
-	# coordinates only.
 	for p in arr
 		for i in length(p)
-			@assert p[i] >= 0
+			p[i] < 0 && throw(ErrorException("All coordinates must be nonnegative."))
+			!(typeof(p[i]) <: Integer) && throw(ErrorException("All coordinates must be integers."))
 		end
 	end
 
@@ -88,7 +86,7 @@ function sqdist(p, q)
 	for i in 1:length(p)
 		prev_d_sq = d_sq
 		d_sq += uint((p[i] - q[i])^2) # Note: uint() rounds.
-		@assert prev_d_sq <= d_sq "Overflow: Squared distance for $p and $q does not fit into a Uint."
+		d_sq < prev_d_sq && throw(ErrorException("Overflow: dist($p, $q)^2 does not fit into a Uint."))
 	end
 	d_sq
 end
