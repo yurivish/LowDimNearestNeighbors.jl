@@ -49,7 +49,6 @@ function preprocess!(arr)
 			!(typeof(p[i]) <: Integer) && throw(ErrorException("All coordinates must be integers."))
 		end
 	end
-
 	sort!(arr, lt=shuffless)
 end
 
