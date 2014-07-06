@@ -115,17 +115,19 @@ let
 	@test sqdist_to_quadtree_box(Vec2(4, 4), Vec2(0, 0), Vec2(1, 1)) == 8
 end
 
-# Test nearest
+
+# Nearest: Deterministic test
 let
-	# Deterministic test
 	arr = preprocess!([Vec2(3, 3), Vec2(10, 0), Vec2(5, 8)])
 	@test nearest(arr, Vec2(0, 0)) == Vec2(3, 3)
 	@test nearest(arr, Vec2(8, 1)) == Vec2(10, 0)
 	@test nearest(arr, Vec2(1000, 1000)) == Vec2(5, 8)
 	@test nearest(arr, Vec2(5, 8)) == Vec2(5, 8)
 	@test nearest(arr, Vec2(5.7, 8.1)) == Vec2(5, 8)
+end
 
-	# Randomized test
+# Nearest: Randomized test
+let
 	sqdist = SSS.sqdist
 	function linear_nearest(arr, q)
 		local best
@@ -139,8 +141,8 @@ let
 	end
 
 	function test(numelements, numqueries; verbose=false)
-		arr = preprocess!([rand(Vec2{Uint8}) for i in 1:numelements])
-		queries = [rand(Vec2{Uint8}) for i in 1:numqueries]
+		arr = preprocess!([rand(Vec2{Uint16}) for i in 1:numelements])
+		queries = [rand(Vec2{Uint16}) for i in 1:numqueries]
 		for q in queries
 			result = nearest(arr, q)
 			result_sqdist = sqdist(q, result)
@@ -163,5 +165,20 @@ let
 	end
 
 	srand(0)
-	test(1000, 1000)
+	test(1000, 1000, verbose=false)
+end
+
+# Benchmarks
+let
+	function benchmark(numelements, numqueries)
+		arr = preprocess!([rand(Vec2{Uint8}) for i in 1:numelements])
+		queries = [rand(Vec2{Uint8}) for i in 1:numqueries]
+		for i in 1:10
+			@time for q in queries
+				nearest(arr, q)
+			end
+		end
+	end
+
+	benchmark(100000, 100000)
 end

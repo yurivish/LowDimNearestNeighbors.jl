@@ -42,7 +42,18 @@ shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
   shuffeq(p, q) = (k = shuffdim(p, q); p[k] == q[k])
 
 # Sort an array by shuffle order to prepare it for nearest-neighbor queries.
-preprocess!(arr) = sort!(arr, lt=shuffless)
+function preprocess!(arr)
+	# Assert that all coordinates are nonnegative. This is a
+	# requirement for this algorithm, which works for nonnegative integer
+	# coordinates only.
+	for p in arr
+		for i in length(p)
+			@assert p[i] >= 0
+		end
+	end
+
+	sort!(arr, lt=shuffless)
+end
 
 # Saturation arithmetic for shifts: clamp instead of overflowing.
 satplus{T}(a::T, b) = oftype(T, clamp(a + b, typemin(T), typemax(T)))
@@ -72,9 +83,12 @@ function sqdist(p, q)
 	@assert length(p) == length(q)
 	@assert length(q) > 0
 
+	local prev_d_sq::Uint
 	d_sq::Uint = 0
 	for i in 1:length(p)
-		d_sq += uint((p[i] - q[i])^2) # Note: uint() rounds
+		prev_d_sq = d_sq
+		d_sq += uint((p[i] - q[i])^2) # Note: uint() rounds.
+		@assert prev_d_sq <= d_sq "Overflow: Squared distance for $p and $q does not fit into a Uint."
 	end
 	d_sq
 end
