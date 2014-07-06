@@ -159,9 +159,10 @@ function nearest{P, Q}(arr::Array{P}, q::Q, ε=0.0)
 	nearest(arr, q, uint(1), uint(length(arr)), Result{P, Q}(arr[1]), ε).point
 end
 
-# Nearest-neighbor search on binary trees. Assumes the tree implements
-# key, left, right, isempty, minimum, and maximum. The code follows
-# the shape of the array version.
+# Nearest-neighbor search on binary search trees with
+# elements in shuffle order. Assumes the tree implements
+# key, left, right, isempty, minimum, and maximum.
+# The code follows the shape of the array version.
 function nearest{P, Q}(t, q::Q, R::Result{P, Q}, ε::Float64)
 	isempty(t) && return R
 
