@@ -77,81 +77,89 @@ Base.rand{T}(::Type{Vec4{T}}) = Vec4(rand(T), rand(T), rand(T), rand(T))
 #
 
 # Test preprocess!
-begin
-	V = Vec2{Int64}
-	arr = [V(1, 1), V(0, 1), V(1, 0), V(0, 0)]
+let
+	T = Vec2{Int64}
+	arr = [T(1, 1), T(0, 1), T(1, 0), T(0, 0)]
 
 	preprocess!(arr)
-	@test arr[1] == V(0, 0)
-	@test arr[2] == V(0, 1)
-	@test arr[3] == V(1, 0)
-	@test arr[4] == V(1, 1)
+	@test arr[1] == T(0, 0)
+	@test arr[2] == T(0, 1)
+	@test arr[3] == T(1, 0)
+	@test arr[4] == T(1, 1)
 end
 
-# Test the Shifted type
-begin
+# Test Shifted indexing and length
+let
 	el = Vec2{Int64}(1, 2)
-	shifted = SSS.Shifted{V}(el, 5)
+	shifted = SSS.Shifted{Vec2{Int64}}(el, 5)
 	@test shifted[1] == 6
 	@test shifted[2] == 7
+	@test length(shifted) == 2
 end
 
+# Test sqdist
+let
+	sqdist = SSS.sqdist
+	@test sqdist(2, 2) == 0
+	@test sqdist(2, 3) == 1
+	@test sqdist(2, 4) == 4
+	@test sqdist(Vec2(3, 0), Vec2(0, 4)) == 5*5
+end
 
+# Test sqdist_to_quadtree_box
+let
+	sqdist_to_quadtree_box = SSS.sqdist_to_quadtree_box
+	@test sqdist_to_quadtree_box(Vec2(0, 0), Vec2(3, 0), Vec2(0, 3)) == 0
+	@test sqdist_to_quadtree_box(Vec2(2, 2), Vec2(3, 0), Vec2(0, 3)) == 0
 
-# sqdist = SSS.sqdist
-# function nearest_linear(arr, q)
-# 	best, best_sqdist = q, Inf
-# 	for point in arr
-# 		if sqdist(point, q) < best_sqdist
-# 			best, best_sqdist = point, sqdist(point, q)
-# 		end
-# 	end
-# 	best
-# end
+	@test sqdist_to_quadtree_box(Vec2(0, 0), Vec2(0, 0), Vec2(3, 3)) == 0
+	@test sqdist_to_quadtree_box(Vec2(2, 2), Vec2(0, 0), Vec2(3, 3)) == 0
 
-# function check(result, arr, q)
-# 	result_linear = nearest_linear(arr, q)
-# 	sqd_result = sqdist(q, result)
-# 	sqd_linear = sqdist(q, result_linear)
-# 	if sqd_result != sqd_linear
-# 		d_result = sqrt(sqd_result)
-# 		d_linear = sqrt(sqd_linear)
-# 		println("Mismatch when searching for ", q, ":")
-# 		println("\tResult: ", result, "\t", d_result)
-# 		println("\tLinear: ", result_linear, "\t", d_linear)
-# 		println("\t% error: ", 100 * (1 - d_linear / d_result))
-# 		println()
-# 	end
-# end
+	@test sqdist_to_quadtree_box(Vec2(0, 0), Vec2(2, 2), Vec2(3, 3)) == 8
+	@test sqdist_to_quadtree_box(Vec2(4, 4), Vec2(0, 0), Vec2(1, 1)) == 8
+end
 
-# points = preprocess!([rand(Vec2{Uint8}) for i in 1:1000])
-# qs = [rand(Vec2{Uint8}) for i in 1:1000]
-# for q in qs
-# 	result = nearest(points, q)
-# 	check(result, points, q)
-# end
+# Test nearest
+let
+	sqdist = SSS.sqdist
 
-function benchmark()
-	arr = preprocess!([rand(Vec2{Uint8}) for i in 1:100000])
-	for i in 1:10
-		queries = [rand(Vec2{Uint8}) for i in 1:100000]
-		@time for q in queries
-			result = nearest(arr, q, 0.0)
-			# check(result, arr, q)
+	function linear_nearest(arr, q)
+		local best
+		best_sqdist = Inf
+		for point in arr
+			if sqdist(point, q) < best_sqdist
+				best, best_sqdist = point, sqdist(point, q)
+			end
+		end
+		best
+	end
+
+	function test(numelements, numqueries; verbose=false)
+		arr = preprocess!([rand(Vec2{Uint8}) for i in 1:numelements])
+		queries = [rand(Vec2{Uint8}) for i in 1:numqueries]
+		for q in queries
+			result = nearest(arr, q)
+			correct_result = linear_nearest(arr, q)
+
+			distsq = sqdist(q, result)
+			correct_distsq = sqdist(q, correct_result)
+
+			if verbose && distsq != correct_distsq
+				result_dist = sqrt(distsq)
+				correct_dist = sqrt(correct_distsq)
+				println("Mismatch when searching for ", q, ":")
+				println("\t Result: ", result, "\t", result_dist)
+				println("\tCorrect: ", correct_result, "\t", correct_dist)
+				println("\t% error: ", 100 * (1 - correct_dist / result_dist), "%")
+				println()
+			end
+
+			@test distsq == correct_distsq
 		end
 	end
+
+	srand(0)
+	test(1000, 10000)
 end
 
-benchmark()
 
-# function benchmark_parts()
-# 	v1 = rand(Vec4{Uint8})
-# 	v2 = rand(Vec4{Uint8})
-# 	for i in 1:10
-# 		@time for j in 1:1000000
-# 			sqdist(v1, v2)
-# 		end
-# 	end
-# end
-
-# benchmark_parts()
