@@ -192,7 +192,5 @@ let
 		end
 	end
 
-	benchmark(100000, 100000)
-
-	# Profile.print(format=:flat)
+	# benchmark(100000, 100000)
 end
