@@ -159,4 +159,33 @@ function nearest{P, Q}(arr::Array{P}, q::Q, ε=0.0)
 	nearest(arr, q, uint(1), uint(length(arr)), Result{P, Q}(arr[1]), ε).point
 end
 
+# Nearest-neighbor search on binary trees. Assumes the tree implements
+# key, left, right, isempty, minimum, and maximum. The code follows
+# the shape of the array version.
+function nearest{P, Q}(t, q::Q, R::Result{P, Q}, ε::Float64)
+	isempty(t) && return R
+
+	r_sq = sqdist(key(t), q)
+	r_sq < R.r_sq && (R = Result{P, Q}(key(t), r_sq, q))
+
+	if (isempty(left(t)) && isempty(right(t))) || sqdist_to_quadtree_box(q, maximum(t), minimum(t)) * (1.0 + ε)^2 >= R.r_sq
+		return R
+	end
+
+	if shuffless(q, key(t))
+		R = nearest(left(t), q, R, ε)
+		shuffmore(R.bbox_hi, key(t)) && (R = nearest(right(t), q, R, ε))
+	else
+		R = nearest(right(t), q, R, ε)
+		shuffless(R.bbox_lo, key(t)) && (R = nearest(left(t), q, R, ε))
+	end
+
+	R
+end
+
+function nearest{P, Q}(t, q::Q, ε=0.0)
+	@assert !isempty(t) "Searching for the nearest in an empty treap"
+	nearest(t, q, Result{P, Q}(key(t)), ε).point
+end
+
 end # module
