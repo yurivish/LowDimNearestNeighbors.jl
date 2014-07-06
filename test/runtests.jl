@@ -1,6 +1,36 @@
 using SSS
 using Base.Test
 
+# Define multidimensional vector types for testing
+immutable Vec2{T}
+	x::T
+	y::T
+end
+Base.getindex(v::Vec2, n::Int) = n == 1 ? v.x : n == 2 ? v.y : throw("Vec2 indexing error.")
+Base.length(v::Vec2) = 2
+Base.rand{T}(::Type{Vec2{T}}) = Vec2(rand(T), rand(T))
+
+immutable Vec3{T}
+	x::T
+	y::T
+	z::T
+end
+Base.getindex(v::Vec3, n::Int) = n == 1 ? v.x : n == 2 ? v.y : n == 3 ? v.z : throw("Vec3 indexing error.")
+Base.length(v::Vec3) = 3
+Base.rand{T}(::Type{Vec3{T}}) = Vec3(rand(T), rand(T), rand(T))
+
+immutable Vec4{T}
+	x::T
+	y::T
+	z::T
+	w::T
+end
+Base.getindex(v::Vec4, n::Int) = n == 1 ? v.x : n == 2 ? v.y : n == 3 ? v.z : n == 4 ? v.w : throw("Vec4 indexing error.")
+Base.length(v::Vec4) = 4
+Base.rand{T}(::Type{Vec4{T}}) = Vec4(rand(T), rand(T), rand(T), rand(T))
+
+#
+
 lessmsb = SSS.lessmsb
 @test  lessmsb(1, 2) # msb(001) <  msb(010) 
 @test !lessmsb(2, 1) # msb(010) >  msb(001) 
@@ -44,48 +74,15 @@ shuffdim = SSS.shuffdim
 @test !shuffeq([1, 3, 3], [1, 2, 3])
 @test shuffeq([1, 2, 3], [1, 2, 3])
 
-#
-
-# Define multidimensional vector types for testing
-immutable Vec2{T}
-	x::T
-	y::T
-end
-Base.getindex(v::Vec2, n::Int) = n == 1 ? v.x : n == 2 ? v.y : throw("Vec2 indexing error.")
-Base.length(v::Vec2) = 2
-Base.rand{T}(::Type{Vec2{T}}) = Vec2(rand(T), rand(T))
-
-immutable Vec3{T}
-	x::T
-	y::T
-	z::T
-end
-Base.getindex(v::Vec3, n::Int) = n == 1 ? v.x : n == 2 ? v.y : n == 3 ? v.z : throw("Vec3 indexing error.")
-Base.length(v::Vec3) = 3
-Base.rand{T}(::Type{Vec3{T}}) = Vec3(rand(T), rand(T), rand(T))
-
-immutable Vec4{T}
-	x::T
-	y::T
-	z::T
-	w::T
-end
-Base.getindex(v::Vec4, n::Int) = n == 1 ? v.x : n == 2 ? v.y : n == 3 ? v.z : n == 4 ? v.w : throw("Vec4 indexing error.")
-Base.length(v::Vec4) = 4
-Base.rand{T}(::Type{Vec4{T}}) = Vec4(rand(T), rand(T), rand(T), rand(T))
-
-#
-
 # Test preprocess!
 let
-	T = Vec2{Int64}
-	arr = [T(1, 1), T(0, 1), T(1, 0), T(0, 0)]
-
+	V2 = Vec2{Int64}
+	arr = [V2(1, 1), V2(0, 1), V2(1, 0), V2(0, 0)]
 	preprocess!(arr)
-	@test arr[1] == T(0, 0)
-	@test arr[2] == T(0, 1)
-	@test arr[3] == T(1, 0)
-	@test arr[4] == T(1, 1)
+	@test arr[1] == V2(0, 0)
+	@test arr[2] == V2(0, 1)
+	@test arr[3] == V2(1, 0)
+	@test arr[4] == V2(1, 1)
 end
 
 # Test Shifted indexing and length
@@ -122,7 +119,6 @@ end
 # Test nearest
 let
 	sqdist = SSS.sqdist
-
 	function linear_nearest(arr, q)
 		local best
 		best_sqdist = Inf
@@ -139,14 +135,14 @@ let
 		queries = [rand(Vec2{Uint8}) for i in 1:numqueries]
 		for q in queries
 			result = nearest(arr, q)
+			result_sqdist = sqdist(q, result)
+			
 			correct_result = linear_nearest(arr, q)
+			correct_sqdist = sqdist(q, correct_result)
 
-			distsq = sqdist(q, result)
-			correct_distsq = sqdist(q, correct_result)
-
-			if verbose && distsq != correct_distsq
-				result_dist = sqrt(distsq)
-				correct_dist = sqrt(correct_distsq)
+			if verbose && result_sqdist != correct_sqdist
+				result_dist = sqrt(result_sqdist)
+				correct_dist = sqrt(correct_sqdist)
 				println("Mismatch when searching for ", q, ":")
 				println("\t Result: ", result, "\t", result_dist)
 				println("\tCorrect: ", correct_result, "\t", correct_dist)
@@ -154,7 +150,7 @@ let
 				println()
 			end
 
-			@test distsq == correct_distsq
+			@test result_sqdist == correct_sqdist
 		end
 	end
 
