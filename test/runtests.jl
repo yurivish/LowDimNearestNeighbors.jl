@@ -84,11 +84,11 @@ let
 	@test arr[4] == Vec2(1, 1)
 
 	# # Error on negative coordinates
-	@test_throws preprocess!([1, 2, -3]) ErrorException
+	@test_throws ErrorException preprocess!([1, 2, -3])
 
-	# Error on noninteger coordinates
-	@test_throws preprocess!([1, 2.2, 3]) ErrorException
-	@test_throws preprocess!([1, 2.0, 3]) ErrorException
+	# # Error on noninteger coordinates
+	@test_throws ErrorException preprocess!([1, 2.2, 3])
+	@test_throws ErrorException preprocess!([1, 2.0, 3])
 end
 
 # Test Shifted indexing and length
@@ -107,7 +107,11 @@ let
 	@test sqdist(2, 3) == 1
 	@test sqdist(2, 4) == 4
 	@test sqdist(Vec2(3, 0), Vec2(0, 4)) == 5*5
-	@test_throws sqdist(Vec2(1, 1), Vec2(typemax(Uint), typemax(Uint)) ErrorException
+
+	# This does not yet work:
+	# println(sqdist(0, typemax(Uint)))
+	# @test sqdist(0, typemax(Uint)) == typemax(Uint)
+	# @test sqdist(Vec2(3, 3), Vec2(typemax(Uint), typemax(Uint))) == typemax(Uint)
 end
 
 # Test sqdist_to_quadtree_box
@@ -189,4 +193,6 @@ let
 	end
 
 	benchmark(100000, 100000)
+
+	# Profile.print(format=:flat)
 end

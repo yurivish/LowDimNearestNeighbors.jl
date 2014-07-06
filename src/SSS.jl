@@ -81,12 +81,9 @@ function sqdist(p, q)
 	@assert length(p) == length(q)
 	@assert length(q) > 0
 
-	local prev_d_sq::Uint
 	d_sq::Uint = 0
 	for i in 1:length(p)
-		prev_d_sq = d_sq
 		d_sq += uint((p[i] - q[i])^2) # Note: uint() rounds.
-		d_sq < prev_d_sq && throw(ErrorException("Overflow: dist($p, $q)^2 does not fit into a Uint."))
 	end
 	d_sq
 end
@@ -159,7 +156,7 @@ function nearest{P, Q}(arr::Array{P}, q::Q, lo::Uint, hi::Uint, R::Result{P, Q},
 end
 
 function nearest{P, Q}(arr::Array{P}, q::Q, ε=0.0)
-	@assert length(arr) > 0
+	@assert length(arr) > 0 "Searching for the nearest in an empty array"
 	nearest(arr, q, uint(1), uint(length(arr)), Result{P, Q}(arr[1]), ε).point
 end
 
