@@ -146,7 +146,3 @@ function nearest{P, Q}(arr::Array{P}, q::Q, ε=0.0)
 end
 
 end # module
-
-# Potential optimizations
-# - Pass in ε_plus_1_sq rather than ε
-# - Optimize saturation arithmetic to be branchless when possible

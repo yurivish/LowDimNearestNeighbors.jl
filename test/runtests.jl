@@ -161,5 +161,3 @@ let
 	srand(0)
 	test(1000, 10000)
 end
-
-
