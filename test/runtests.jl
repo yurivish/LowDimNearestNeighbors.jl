@@ -1,4 +1,4 @@
-using SSS
+using LowDimNearestNeighbors
 using Base.Test
 
 # Define multidimensional vector types for testing
@@ -31,7 +31,7 @@ Base.rand{T}(::Type{Vec4{T}}) = Vec4(rand(T), rand(T), rand(T), rand(T))
 
 #
 
-lessmsb = SSS.lessmsb
+lessmsb = LowDimNearestNeighbors.lessmsb
 @test  lessmsb(1, 2) # msb(001) <  msb(010) 
 @test !lessmsb(2, 1) # msb(010) >  msb(001) 
 
@@ -43,7 +43,7 @@ lessmsb = SSS.lessmsb
 
 #
 
-shuffdim = SSS.shuffdim
+shuffdim = LowDimNearestNeighbors.shuffdim
 # The shuffdim should be 1 for identical points
 @test shuffdim([1, 2, 3], [1, 2, 3]) == 1
 @test shuffdim([123, 123], [123, 123]) == 1
@@ -94,7 +94,7 @@ end
 # Test Shifted indexing and length
 let
 	el = Vec2{Int64}(1, 2)
-	shifted = SSS.Shifted{Vec2{Int64}}(el, 5)
+	shifted = LowDimNearestNeighbors.Shifted{Vec2{Int64}}(el, 5)
 	@test shifted[1] == 6
 	@test shifted[2] == 7
 	@test length(shifted) == 2
@@ -102,7 +102,7 @@ end
 
 # Test sqdist
 let
-	sqdist = SSS.sqdist
+	sqdist = LowDimNearestNeighbors.sqdist
 	@test sqdist(2, 2) == 0
 	@test sqdist(2, 3) == 1
 	@test sqdist(2, 4) == 4
@@ -116,7 +116,7 @@ end
 
 # Test sqdist_to_quadtree_box
 let
-	sqdist_to_quadtree_box = SSS.sqdist_to_quadtree_box
+	sqdist_to_quadtree_box = LowDimNearestNeighbors.sqdist_to_quadtree_box
 	@test sqdist_to_quadtree_box(Vec2(0, 0), Vec2(3, 0), Vec2(0, 3)) == 0
 	@test sqdist_to_quadtree_box(Vec2(2, 2), Vec2(3, 0), Vec2(0, 3)) == 0
 
@@ -140,7 +140,7 @@ end
 
 # Nearest: Randomized test
 let
-	sqdist = SSS.sqdist
+	sqdist = LowDimNearestNeighbors.sqdist
 	function linear_nearest(arr, q)
 		local best
 		best_sqdist = Inf

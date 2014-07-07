@@ -3,7 +3,7 @@
 This package implements approximate nearest-neighbor search in low dimensions for points with integer coordinates, using an elegant idea from a 2006 [paper](http://cs.uwaterloo.ca/~tmchan/sss.ps) by Timothy M. Chan.
 
 ```julia
-	using SSS
+	using LowDimNearestNeighbors
 
 	# Create an array of random 3d points
 	arr = [[rand(Uint8), rand(Uint8), rand(Uint8)] for i in 1:100000]
@@ -15,14 +15,14 @@ This package implements approximate nearest-neighbor search in low dimensions fo
 	query  = [rand(Uint8), rand(Uint8), rand(Uint8)]
 	result = nearest(arr, query)
 	println("Nearest point to $query: $result")
-	println("Distance: ", sqrt(SSS.sqdist(query, result)))
+	println("Distance: ", sqrt(LowDimNearestNeighbors.sqdist(query, result)))
 
 	# Perform an approximate nearest-neighbor search to find
 	# a point whose distance to the query is within 25% of 
 	# the best possible result.
 	result = nearest(arr, query, 0.25)
 	println("Approximate nearest point to $query: $result")
-	println("Distance: ", sqrt(SSS.sqdist(query, result)))
+	println("Distance: ", sqrt(LowDimNearestNeighbors.sqdist(query, result)))
 ```
 
 ## Notes
@@ -37,4 +37,4 @@ Currently, there is risk of overflow in the distance function -- if the squared 
 
 This code has been used to some success to implement nearest-neighbor search in RGB colorspace. If you use it for anything interesting, [let me know](mailto:yurivish@gmail.com)!
 
-[![Build Status](https://travis-ci.org/yurivish/SSS.jl.svg?branch=master)](https://travis-ci.org/yurivish/SSS.jl)
+[![Build Status](https://travis-ci.org/yurivish/LowDimNearestNeighbors.jl.svg?branch=master)](https://travis-ci.org/yurivish/LowDimNearestNeighbors.jl)

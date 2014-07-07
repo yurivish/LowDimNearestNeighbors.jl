@@ -4,7 +4,7 @@
 # Paper: http://cs.uwaterloo.ca/~tmchan/sss.ps
 # Further reading: http://en.wikipedia.org/wiki/Z-order_curve
 
-module SSS
+module LowDimNearestNeighbors
 
 export shuffless, shuffmore, shuffeq, preprocess!, nearest
 
