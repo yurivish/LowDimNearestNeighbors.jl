@@ -128,12 +128,12 @@ function nearest{P, Q}(arr::Array{P}, q::Q, lo::Uint, hi::Uint, R::Result{P, Q},
 
 	# Calculate the midpoint of the range, avoiding midpoint overflow
 	mid = (lo + hi) >>> 1
+	min, cur, max = arr[lo], arr[mid], arr[hi]
 
 	# Compute the distance from the probe point to the query point,
 	# and update the result if it's closer than our best match so far
-	min, p, max = arr[lo], arr[mid], arr[hi]
-	r_sq = sqdist(p, q)
-	r_sq < R.r_sq && (R = Result{P, Q}(p, r_sq, q))
+	r_sq = sqdist(cur, q)
+	r_sq < R.r_sq && (R = Result{P, Q}(cur, r_sq, q))
 
 	# Return early if the range is only one element wide or if the
 	# bounding box containing the range is outside of the search radius
@@ -144,12 +144,12 @@ function nearest{P, Q}(arr::Array{P}, q::Q, lo::Uint, hi::Uint, R::Result{P, Q},
 	# Recurse. Unlike binary search, we occasionally recurse into
 	# both halves of the array when we can't guarantee that the nearest
 	# point lies outside the other half
-	if shuffless(q, p)
+	if shuffless(q, cur)
 		R = nearest(arr, q, lo, mid - 1, R, ε)
-		shuffmore(R.bbox_hi, p) && (R = nearest(arr, q, mid + 1, hi, R, ε))
+		shuffmore(R.bbox_hi, cur) && (R = nearest(arr, q, mid + 1, hi, R, ε))
 	else
 		R = nearest(arr, q, mid + 1, hi, R, ε)
-		shuffless(R.bbox_lo, p) && (R = nearest(arr, q, lo, mid - 1, R, ε))
+		shuffless(R.bbox_lo, cur) && (R = nearest(arr, q, lo, mid - 1, R, ε))
 	end
 
 	R
@@ -166,21 +166,21 @@ end
 # The code follows the shape of the array version above.
 function nearest{P, Q}(t, q::Q, R::Result{P, Q}, ε::Float64)
 	isempty(t) && return R
+	min, cur, max = minimum(t), key(t), maximum(t)
 
-	min, p, max = minimum(t), key(t), maximum(t)
-	r_sq = sqdist(p, q)
-	r_sq < R.r_sq && (R = Result{P, Q}(p, r_sq, q))
+	r_sq = sqdist(cur, q)
+	r_sq < R.r_sq && (R = Result{P, Q}(cur, r_sq, q))
 
 	if min == max || sqdist_to_quadtree_box(q, min, max) * (1.0 + ε)^2 >= R.r_sq
 		return R
 	end
 
-	if shuffless(q, p)
+	if shuffless(q, cur)
 		R = nearest(left(t), q, R, ε)
-		shuffmore(R.bbox_hi, p) && (R = nearest(right(t), q, R, ε))
+		shuffmore(R.bbox_hi, cur) && (R = nearest(right(t), q, R, ε))
 	else
 		R = nearest(right(t), q, R, ε)
-		shuffless(R.bbox_lo, p) && (R = nearest(left(t), q, R, ε))
+		shuffless(R.bbox_lo, cur) && (R = nearest(left(t), q, R, ε))
 	end
 
 	R
