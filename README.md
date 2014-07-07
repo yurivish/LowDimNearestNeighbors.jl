@@ -31,7 +31,7 @@ The algorithm is _in-place_, i.e. it requires no extra space beyond the input ar
 
 The approach here works best in low dimensions (2, 3, 4), but the code is generic and will work for points of arbitrary dimension so long as they implement `getindex` and `length`.
 
-When performing approximate searches, the points found by the algorithm tend to be better than you'd expect based on the approximation factor. For example, in the program above it will often find an exact match.
+When performing approximate searches, the points found by the algorithm tend to be better than you'd expect based on the approximation factor. For example, the above program will often find exact matches when looking for approximate ones.
 
 Currently, there is risk of overflow in the distance function -- if the squared euclidean distance exceeds `typemax(Uint)`, overflow will occur and the results returned by the algorithm will be incorrect.
 
