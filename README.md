@@ -11,9 +11,8 @@ This package implements approximate nearest-neighbor search in low dimensions fo
 	# Preprocess the array to prepare it for efficient searching
 	preprocess!(arr)
 
-	query  = [100, 100, 100]
-
 	# Perform an exact nearest-neighbor search
+	query  = [100, 100, 100]
 	result = nearest(arr, query)
 	println("Nearest point to $query: $result")
 
