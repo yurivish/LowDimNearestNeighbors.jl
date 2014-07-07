@@ -183,9 +183,9 @@ end
 # Benchmarks
 let
 	function benchmark(numelements, numqueries)
-		arr = preprocess!([rand(Vec2{Uint8}) for i in 1:numelements])
-		queries = [rand(Vec2{Uint8}) for i in 1:numqueries]
 		for i in 1:10
+			arr = preprocess!([rand(Vec2{Uint8}) for i in 1:numelements])
+			queries = [rand(Vec2{Uint8}) for i in 1:numqueries]
 			@time for q in queries
 				nearest(arr, q)
 			end
