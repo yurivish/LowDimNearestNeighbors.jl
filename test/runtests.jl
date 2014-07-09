@@ -108,9 +108,9 @@ let
 	@test sqdist(2, 4) == 4
 	@test sqdist(Vec2(3, 0), Vec2(0, 4)) == 5*5
 
-	# This does not yet work:
-	println(sqdist(0, typemax(Uint)))
+	# Test saturation cases
 	@test sqdist(0, typemax(Uint)) == typemax(Uint)
+	@test sqdist(typemax(Uint), 0) == typemax(Uint)
 	@test sqdist(Vec2(3, 3), Vec2(typemax(Uint), typemax(Uint))) == typemax(Uint)
 end
 
@@ -135,7 +135,6 @@ let
 	@test nearest(arr, Vec2(8, 1)) == Vec2(10, 0)
 	@test nearest(arr, Vec2(1000, 1000)) == Vec2(5, 8)
 	@test nearest(arr, Vec2(5, 8)) == Vec2(5, 8)
-	@test nearest(arr, Vec2(5.7, 8.1)) == Vec2(5, 8)
 end
 
 # Nearest: Randomized test
@@ -153,8 +152,8 @@ let
 	end
 
 	function test(numelements, numqueries; verbose=false)
-		arr = preprocess!([rand(Vec2{Uint16}) for i in 1:numelements])
-		queries = [rand(Vec2{Uint16}) for i in 1:numqueries]
+		arr = preprocess!([Vec2(int(rand(Uint8)), int(rand(Uint8))) for i in 1:numelements])
+		queries = [Vec2(int(rand(Uint8)), int(rand(Uint8))) for i in 1:numqueries]
 		for q in queries
 			result = nearest(arr, q)
 			result_sqdist = sqdist(q, result)
@@ -176,8 +175,11 @@ let
 		end
 	end
 
-	srand(0)
-	test(1000, 1000, verbose=false)
+	# srand(0)
+	for i in 1:100
+		test(1000, 1000, verbose=true)
+		println("Passed round $i")
+	end
 end
 
 # Benchmarks

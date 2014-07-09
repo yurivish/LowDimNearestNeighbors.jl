@@ -106,9 +106,7 @@ function sqdist(p, q)
 	d_sq::Uint = 0
 	for i in 1:length(p)
 		# d_sq += uint((p[i] - q[i])^2)
-		# diff = uint(abs(p[i] - q[i])) # Note: uint() rounds.
-		diff::Uint = p[i] < q[i] ? q[i] - p[i] : p[i] - q[i]
-		println(p[i], " ", q[i], " ", p[i] - q[i], " ", abs(p[i] - q[i]), ":", diff)
+		diff = uint(p[i] < q[i] ? q[i] - p[i] : p[i] - q[i]) # Note: uint() rounds.
 		d_sq = satadd(d_sq, satmul(diff, diff))
 	end
 	d_sq
