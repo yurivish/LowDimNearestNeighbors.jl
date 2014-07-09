@@ -75,6 +75,29 @@ immutable Result{P, Q}
 	end
 end
 
+# Code for branch-free saturation arithmetic from
+# http://locklessinc.com/articles/sat_arithmetic/
+# This will get much nicer and more general with 
+# staged functions.
+function satadd{T <: Unsigned}(x::T, y::T)
+	res::T = x + y
+	res | -(res < x)
+end
+
+function satmul(x::Uint64, y::Uint64)
+	res = uint128(x) * uint128(y)
+	hi::Uint64 = res >> 64
+	lo::Uint64 = res
+	lo | -bool(hi)
+end
+
+function satmul(x::Uint32, y::Uint32)
+	res = uint64(x) * uint64(y)
+	hi::Uint32 = res >> 32
+	lo::Uint32 = res
+	lo | -bool(hi)
+end
+
 # Euclidean distance, though any p-norm will do.
 function sqdist(p, q)
 	@assert length(p) == length(q)
@@ -82,7 +105,11 @@ function sqdist(p, q)
 
 	d_sq::Uint = 0
 	for i in 1:length(p)
-		d_sq += uint((p[i] - q[i])^2) # Note: uint() rounds.
+		# d_sq += uint((p[i] - q[i])^2)
+		# diff = uint(abs(p[i] - q[i])) # Note: uint() rounds.
+		diff::Uint = p[i] < q[i] ? q[i] - p[i] : p[i] - q[i]
+		println(p[i], " ", q[i], " ", p[i] - q[i], " ", abs(p[i] - q[i]), ":", diff)
+		d_sq = satadd(d_sq, satmul(diff, diff))
 	end
 	d_sq
 end
@@ -128,12 +155,11 @@ function nearest{P, Q}(arr::Array{P}, q::Q, lo::Uint, hi::Uint, R::Result{P, Q},
 
 	# Calculate the midpoint of the range, avoiding midpoint overflow
 	mid = (lo + hi) >>> 1
-	min, cur, max = arr[lo], arr[mid], arr[hi]
 
 	# Compute the distance from the probe point to the query point,
 	# and update the result if it's closer than our best match so far
-	r_sq = sqdist(cur, q)
-	r_sq < R.r_sq && (R = Result{P, Q}(cur, r_sq, q))
+	r_sq = sqdist(arr[mid], q)
+	r_sq < R.r_sq && (R = Result{P, Q}(arr[mid], r_sq, q))
 
 	# Return early if the range is only one element wide or if the
 	# bounding box containing the range is outside of the search radius
@@ -144,12 +170,12 @@ function nearest{P, Q}(arr::Array{P}, q::Q, lo::Uint, hi::Uint, R::Result{P, Q},
 	# Recurse. Unlike binary search, we occasionally recurse into
 	# both halves of the array when we can't guarantee that the nearest
 	# point lies outside the other half
-	if shuffless(q, cur)
+	if shuffless(q, arr[mid])
 		R = nearest(arr, q, lo, mid - 1, R, ε)
-		shuffmore(R.bbox_hi, cur) && (R = nearest(arr, q, mid + 1, hi, R, ε))
+		shuffmore(R.bbox_hi, arr[mid]) && (R = nearest(arr, q, mid + 1, hi, R, ε))
 	else
 		R = nearest(arr, q, mid + 1, hi, R, ε)
-		shuffless(R.bbox_lo, cur) && (R = nearest(arr, q, lo, mid - 1, R, ε))
+		shuffless(R.bbox_lo, arr[mid]) && (R = nearest(arr, q, lo, mid - 1, R, ε))
 	end
 
 	R
@@ -158,37 +184,6 @@ end
 function nearest{P, Q}(arr::Array{P}, q::Q, ε=0.0)
 	@assert length(arr) > 0 "Searching for the nearest in an empty array"
 	nearest(arr, q, uint(1), uint(length(arr)), Result{P, Q}(arr[1]), ε).point
-end
-
-# Nearest-neighbor search on a binary search tree with unique
-# elements in shuffle order. Assumes the tree implements
-# key, left, right, isempty, minimum, and maximum.
-# The code follows the shape of the array version above.
-function nearest{P, Q}(t, q::Q, R::Result{P, Q}, ε::Float64)
-	isempty(t) && return R
-	min, cur, max = minimum(t), key(t), maximum(t)
-
-	r_sq = sqdist(cur, q)
-	r_sq < R.r_sq && (R = Result{P, Q}(cur, r_sq, q))
-
-	if min == max || sqdist_to_quadtree_box(q, min, max) * (1.0 + ε)^2 >= R.r_sq
-		return R
-	end
-
-	if shuffless(q, cur)
-		R = nearest(left(t), q, R, ε)
-		shuffmore(R.bbox_hi, cur) && (R = nearest(right(t), q, R, ε))
-	else
-		R = nearest(right(t), q, R, ε)
-		shuffless(R.bbox_lo, cur) && (R = nearest(left(t), q, R, ε))
-	end
-
-	R
-end
-
-function nearest{Q}(t, q::Q, ε=0.0)
-	@assert !isempty(t) "Searching for the nearest in an empty tree"
-	nearest(t, q, Result{typeof(key(t)), Q}(key(t)), ε).point
 end
 
 end # module

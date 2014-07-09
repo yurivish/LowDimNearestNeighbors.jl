@@ -109,9 +109,9 @@ let
 	@test sqdist(Vec2(3, 0), Vec2(0, 4)) == 5*5
 
 	# This does not yet work:
-	# println(sqdist(0, typemax(Uint)))
-	# @test sqdist(0, typemax(Uint)) == typemax(Uint)
-	# @test sqdist(Vec2(3, 3), Vec2(typemax(Uint), typemax(Uint))) == typemax(Uint)
+	println(sqdist(0, typemax(Uint)))
+	@test sqdist(0, typemax(Uint)) == typemax(Uint)
+	@test sqdist(Vec2(3, 3), Vec2(typemax(Uint), typemax(Uint))) == typemax(Uint)
 end
 
 # Test sqdist_to_quadtree_box
@@ -192,5 +192,5 @@ let
 		end
 	end
 
-	# benchmark(100000, 100000)
+	benchmark(100000, 100000)
 end
