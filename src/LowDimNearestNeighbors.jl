@@ -53,7 +53,7 @@ function preprocess!(arr)
 end
 
 # Saturation arithmetic for shifts: clamp instead of overflowing.
-satplus{T}(a::T, b) = oftype(T, clamp(a + b, typemin(T), typemax(T)))
+satplus{T}(a::T, b) = oftype(T, clamp(a + b, 0, typemax(T)))
 
 # Represent shifted points by their own type.
 immutable Shifted{Q}

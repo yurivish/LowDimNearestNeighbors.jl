@@ -152,8 +152,8 @@ let
 	end
 
 	function test(numelements, numqueries; verbose=false)
-		arr = preprocess!([Vec2(int(rand(Uint8)), int(rand(Uint8))) for i in 1:numelements])
-		queries = [Vec2(int(rand(Uint8)), int(rand(Uint8))) for i in 1:numqueries]
+		arr = preprocess!([Vec2(int(rand(Uint16)), int(rand(Uint16))) for i in 1:numelements])
+		queries = [rand(Vec2{Uint16}) for i in 1:numqueries]
 		for q in queries
 			result = nearest(arr, q)
 			result_sqdist = sqdist(q, result)
@@ -175,7 +175,7 @@ let
 		end
 	end
 
-	# srand(0)
+	srand(0)
 	for i in 1:100
 		test(1000, 1000, verbose=true)
 		println("Passed round $i")
