@@ -2,32 +2,14 @@ using LowDimNearestNeighbors
 using Base.Test
 
 # Define multidimensional vector types for testing
-immutable Vec2{T}
+immutable Vec2{T <: Unsigned}
 	x::T
 	y::T
 end
+Vec2(x, y) = Vec2(convert(Unsigned, x), convert(Unsigned, y))
 Base.getindex(v::Vec2, n::Int) = n == 1 ? v.x : n == 2 ? v.y : throw("Vec2 indexing error.")
 Base.length(v::Vec2) = 2
 Base.rand{T}(::Type{Vec2{T}}) = Vec2(rand(T), rand(T))
-
-immutable Vec3{T}
-	x::T
-	y::T
-	z::T
-end
-Base.getindex(v::Vec3, n::Int) = n == 1 ? v.x : n == 2 ? v.y : n == 3 ? v.z : throw("Vec3 indexing error.")
-Base.length(v::Vec3) = 3
-Base.rand{T}(::Type{Vec3{T}}) = Vec3(rand(T), rand(T), rand(T))
-
-immutable Vec4{T}
-	x::T
-	y::T
-	z::T
-	w::T
-end
-Base.getindex(v::Vec4, n::Int) = n == 1 ? v.x : n == 2 ? v.y : n == 3 ? v.z : n == 4 ? v.w : throw("Vec4 indexing error.")
-Base.length(v::Vec4) = 4
-Base.rand{T}(::Type{Vec4{T}}) = Vec4(rand(T), rand(T), rand(T), rand(T))
 
 #
 
@@ -83,20 +65,26 @@ let
 	@test arr[3] == Vec2(1, 0)
 	@test arr[4] == Vec2(1, 1)
 
-	# # Error on negative coordinates
+	# Error on negative coordinates
 	@test_throws ErrorException preprocess!([1, 2, -3])
 
-	# # Error on noninteger coordinates
+	# Error on noninteger coordinates
 	@test_throws ErrorException preprocess!([1, 2.2, 3])
 	@test_throws ErrorException preprocess!([1, 2.0, 3])
 end
 
-# Test Shifted indexing and length
+# Test Shifted indexing, clamping, and length
 let
-	el = Vec2{Int64}(1, 2)
-	shifted = LowDimNearestNeighbors.Shifted{Vec2{Int64}}(el, 5)
+	el = Vec2{Uint64}(1, 2)
+	shifted = LowDimNearestNeighbors.ShiftedPos{Vec2{Uint64}}(el, 5)
 	@test shifted[1] == 6
 	@test shifted[2] == 7
+	@test length(shifted) == 2
+
+	el = Vec2{Uint64}(4, 6)
+	shifted = LowDimNearestNeighbors.ShiftedNeg{Vec2{Uint64}}(el, 5)
+	@test shifted[1] == 0
+	@test shifted[2] == 1
 	@test length(shifted) == 2
 end
 
@@ -151,9 +139,7 @@ let
 		best
 	end
 
-	function test(numelements, numqueries; verbose=false)
-		arr = preprocess!([Vec2(int(rand(Uint16)), int(rand(Uint16))) for i in 1:numelements])
-		queries = [rand(Vec2{Uint16}) for i in 1:numqueries]
+	function test(arr, queries; verbose=false)
 		for q in queries
 			result = nearest(arr, q)
 			result_sqdist = sqdist(q, result)
@@ -176,10 +162,23 @@ let
 	end
 
 	srand(0)
-	for i in 1:100
-		test(1000, 1000, verbose=true)
-		println("Passed round $i")
-	end
+	numelements = numqueries = 1000
+
+	test(
+		preprocess!([rand(Vec2{Uint64}) for i in 1:numelements]),
+		[rand(Vec2{Uint64}) for i in 1:numqueries]
+	)
+
+	test(
+		preprocess!([rand(Vec2{Uint16}) for i in 1:numelements]),
+		[rand(Vec2{Uint32}) for i in 1:numqueries]
+	)
+
+	test(
+		preprocess!([rand(Vec2{Uint32}) for i in 1:numelements]),
+		[rand(Vec2{Uint16}) for i in 1:numqueries]
+	)
+
 end
 
 # Benchmarks
@@ -194,5 +193,5 @@ let
 		end
 	end
 
-	benchmark(100000, 100000)
+	# benchmark(100000, 100000)
 end

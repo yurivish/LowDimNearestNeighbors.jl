@@ -1,6 +1,6 @@
 # Nearest-Neighbor Search in Low Dimensions
 
-This package implements approximate nearest-neighbor search in low dimensions for points with integer coordinates, using an elegant idea from a 2006 [paper](http://cs.uwaterloo.ca/~tmchan/sss.ps) by Timothy M. Chan.
+This package implements approximate nearest-neighbor search in low dimensions for points with unsigned integer coordinates, using an elegant idea from a 2006 [paper](http://cs.uwaterloo.ca/~tmchan/sss.ps) by Timothy M. Chan.
 
 ```julia
 	using LowDimNearestNeighbors

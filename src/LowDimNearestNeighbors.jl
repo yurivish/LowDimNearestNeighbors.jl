@@ -16,16 +16,14 @@ lessmsb(m, n) = m < n && m < (m $ n)
 # of p and q comes first in shuffle order. This is
 # equivalent to finding the dimension with the most
 # significant differing bit between p and q.
-# Ties are broken in favor of lower-index dimensions;
-# this is a consequence of the order in which the bits
-# are conceptually interleaved.
+# Ties are broken in favor of lower-index dimensions.
 function shuffdim(p, q)
 	@assert length(p) == length(q)
 	@assert length(p) > 0
 
-	# For any integers x and y, the most significant
-	# bit of x $ y is the most significant differing
-	# bit between x and y.
+	# For any integers x and y, the msb of x $ y is
+	# the most significant differing bit between
+	# x and y.
 	k, kxor = 1, p[1] $ q[1]
 	for i in 2:length(p)
 		ixor = p[i] $ q[i]
@@ -45,43 +43,22 @@ shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
 function preprocess!(arr)
 	for p in arr
 		for i in length(p)
-			p[i] < 0 && throw(ErrorException("All coordinates must be nonnegative."))
-			!(typeof(p[i]) <: Integer) && throw(ErrorException("All coordinates must be integers."))
+			!(typeof(p[i]) <: Unsigned) && throw(ErrorException("All coordinates must be unsigned integers."))
 		end
 	end
 	sort!(arr, lt=shuffless)
 end
 
-# Saturation arithmetic for shifts: clamp instead of overflowing.
-satplus{T}(a::T, b) = oftype(T, clamp(a + b, 0, typemax(T)))
-
-# Represent shifted points by their own type.
-immutable Shifted{Q}
-	data::Q
-	shift::Int
-end
-Base.getindex(s::Shifted, args...) = satplus(s.data[args...], s.shift)
-Base.length(s::Shifted) = length(s.data)
-
-immutable Result{P, Q}
-	point::P
-	r_sq::Uint
-	bbox_hi::Shifted{Q}
-	bbox_lo::Shifted{Q}
-	Result(point::P) = new(point, typemax(Uint))
-	function Result(point::P, r_sq, q::Q)
-		r = iceil(sqrt(r_sq))
-		new(point, r_sq, Shifted{Q}(q, r), Shifted{Q}(q, -r))
-	end
-end
-
 # Code for branch-free saturation arithmetic from
 # http://locklessinc.com/articles/sat_arithmetic/
-# This will get much nicer and more general with 
-# staged functions.
-function satadd{T <: Unsigned}(x::T, y::T)
+function satadd{T <: Unsigned}(x::T, y::Unsigned)
 	res::T = x + y
-	res | -(res < x)
+	oftype(T, res | -(res < x))
+end
+
+function satsub{T <: Unsigned}(x::T, y::Unsigned)
+	res::T = x - y
+	oftype(T, res & -(res <= x))
 end
 
 function satmul(x::Uint64, y::Uint64)
@@ -96,6 +73,39 @@ function satmul(x::Uint32, y::Uint32)
 	hi::Uint32 = res >> 32
 	lo::Uint32 = res
 	lo | -bool(hi)
+end
+
+function satdiv(x::Unsigned, y::Unsigned)
+	x / y # There's no way for the result to underflow or overflow.
+end
+
+# Represent shifted points by their own type.
+# It is assumed that data is a point with
+# eltype(data) <: Unsigned
+immutable ShiftedPos{Q}
+	data::Q
+	offset::Uint
+end
+Base.getindex(s::ShiftedPos, args...) = satadd(s.data[args...], s.offset)
+Base.length(s::ShiftedPos) = length(s.data)
+
+immutable ShiftedNeg{Q}
+	data::Q
+	offset::Uint
+end
+Base.getindex(s::ShiftedNeg, args...) = satsub(s.data[args...], s.offset)
+Base.length(s::ShiftedNeg) = length(s.data)
+
+immutable Result{P, Q}
+	point::P
+	r_sq::Uint
+	bbox_hi::ShiftedPos{Q}
+	bbox_lo::ShiftedNeg{Q}
+	Result(point::P) = new(point, typemax(Uint))
+	function Result(point::P, r_sq, q::Q)
+		r = iceil(sqrt(r_sq))
+		new(point, r_sq, ShiftedPos{Q}(q, r), ShiftedNeg{Q}(q, r))
+	end
 end
 
 # Euclidean distance, though any p-norm will do.
