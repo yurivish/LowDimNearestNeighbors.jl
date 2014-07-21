@@ -15,14 +15,14 @@ This package implements approximate nearest-neighbor search in low dimensions fo
 	query  = [rand(Uint8), rand(Uint8), rand(Uint8)]
 	result = nearest(arr, query)
 	println("Nearest point to $query: $result")
-	println("Distance: ", sqrt(LowDimNearestNeighbors.sqdist(query, result)))
+	println("Distance: ", norm(query - result))
 
 	# Perform an approximate nearest-neighbor search to find
 	# a point whose distance to the query is within 25% of 
 	# the best possible result.
 	result = nearest(arr, query, 0.25)
 	println("Approximate nearest point to $query: $result")
-	println("Distance: ", sqrt(LowDimNearestNeighbors.sqdist(query, result)))
+	println("Distance: ", norm(query - result))
 ```
 
 ## Notes
