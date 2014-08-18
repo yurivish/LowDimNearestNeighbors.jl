@@ -33,6 +33,6 @@ The approach here works best in low dimensions (such as 2, 3, and 4), but the co
 
 When performing approximate searches, the points found by the algorithm tend to be better than you'd expect based on the approximation factor. For example, the above program will often find exact matches when looking for approximate ones.
 
-This code has been used to some success to implement nearest-neighbor search in RGB colorspace.
+This code has been used to some success to implement [nearest-neighbor search in RGB colorspace](https://github.com/JuliaCon/presentations/blob/78822834cbcd5a2db54f267140fdaadefef0c686/Pixels/Pixels2014.pdf?raw=true) (pdf; slides from my presentation at the first-ever JuliaCon).
 
 [![Build Status](https://travis-ci.org/yurivish/LowDimNearestNeighbors.jl.svg?branch=master)](https://travis-ci.org/yurivish/LowDimNearestNeighbors.jl)
