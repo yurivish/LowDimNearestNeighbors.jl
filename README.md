@@ -29,9 +29,7 @@ This package implements approximate nearest-neighbor search in low dimensions fo
 
 The approach here works best in low dimensions (such as 2, 3, and 4), but the code is generic and will work for points of arbitrary dimension so long as they implement `getindex` and `length`.
 
-This code relies on certain properties of the bit representation and will work only for points with **unsigned integer coordinates**.
-
-(Types like `Ufixed8` from [FixedPointNumbers.jl](https://github.com/JeffBezanson/FixedPointNumbers.jl) will work if you define xor on the underlying bits: `($)(x::FixedPoint, y::FixedPoint) = reinterpret(x) $ reinterpret(y)`)
+This code relies on certain properties of the bit representation and will work only for points with **unsigned integer coordinates**.[1]
 
 The algorithm is _in-place_, i.e. it requires no extra space beyond the input array. Instead, spatial information is encoded in the permutation of points -- the preprocessing step sorts the array to prepare for efficient queries.
 
@@ -39,4 +37,4 @@ When performing approximate searches, the points found by the algorithm tend to 
 
 This code has been used to some success to implement [nearest-neighbor search in RGB colorspace](https://github.com/JuliaCon/presentations/blob/78822834cbcd5a2db54f267140fdaadefef0c686/Pixels/Pixels2014.pdf?raw=true) (pdf; slides from my presentation at the first-ever JuliaCon).
 
-[![Build Status](https://travis-ci.org/yurivish/LowDimNearestNeighbors.jl.svg?branch=master)](https://travis-ci.org/yurivish/LowDimNearestNeighbors.jl)
+[1] Unsigned integers from [FixedPointNumbers.jl](https://github.com/JeffBezanson/FixedPointNumbers.jl) will work if you define xor on the underlying bits: `($)(x::Ufixed, y::Ufixed) = reinterpret(x) $ reinterpret(y)`
