@@ -31,7 +31,7 @@ The approach here works best in low dimensions (such as 2, 3, and 4), but the co
 
 This code relies on certain properties of the bit representation and will work only for points with **unsigned integer coordinates**.
 
-Unsigned integers from [FixedPointNumbers.jl](https://github.com/JeffBezanson/FixedPointNumbers.jl) will work if you define xor on the underlying bits: `($)(x::Ufixed, y::Ufixed) = reinterpret(x) $ reinterpret(y)`
+Unsigned numbers from the [FixedPointNumbers package](https://github.com/JeffBezanson/FixedPointNumbers.jl) will work if you define xor on the underlying bits: `($)(x::Ufixed, y::Ufixed) = reinterpret(x) $ reinterpret(y)`
 
 The algorithm is _in-place_, i.e. it requires no extra space beyond the input array. Instead, spatial information is encoded in the permutation of points -- the preprocessing step sorts the array to prepare for efficient queries.
 
