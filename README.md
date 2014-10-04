@@ -27,11 +27,11 @@ This package implements approximate nearest-neighbor search in low dimensions fo
 
 ## Notes
 
-The approach here works best in **low dimensions** (such as 2, 3, and 4), but the code is generic and will work for points of arbitrary dimension so long as they implement `getindex` and `length`. 
+The approach here works best in low dimensions (such as 2, 3, and 4), but the code is generic and will work for points of arbitrary dimension so long as they implement `getindex` and `length`.
 
-This code will work only for points with **unsigned integer coordinates** because it relies on certain properties of the bit representation.
+This code relies on certain properties of the bit representation and will work only for points with **unsigned integer coordinates**.
 
-Types like `Ufixed8` from [FixedPointNumbers.jl](https://github.com/JeffBezanson/FixedPointNumbers.jl) will work if you define xor as xor on the bits of the underlying representation: `($)(x::FixedPoint, y::FixedPoint) = reinterpret(x) $ reinterpret(y)`
+(Types like `Ufixed8` from [FixedPointNumbers.jl](https://github.com/JeffBezanson/FixedPointNumbers.jl) will work if you define xor on the underlying bits: `($)(x::FixedPoint, y::FixedPoint) = reinterpret(x) $ reinterpret(y)`)
 
 The algorithm is _in-place_, i.e. it requires no extra space beyond the input array. Instead, spatial information is encoded in the permutation of points -- the preprocessing step sorts the array to prepare for efficient queries.
 
