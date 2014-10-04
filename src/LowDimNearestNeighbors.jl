@@ -40,7 +40,14 @@ shuffmore(p, q) = (k = shuffdim(p, q); p[k] > q[k])
   shuffeq(p, q) = (k = shuffdim(p, q); p[k] == q[k])
 
 # Sort the given array in shuffle order to prepare it for nearest-neighbor queries.
-preprocess!(arr) = sort!(arr, lt=shuffless)
+function preprocess!(arr)
+	for p in arr
+		for i in length(p)
+			!(typeof(p[i]) <: Unsigned) && throw(ErrorException("All coordinates must be unsigned integers."))
+		end
+	end
+	sort!(arr, lt=shuffless)
+end
 
 # Code for branch-free saturation arithmetic from
 # http://locklessinc.com/articles/sat_arithmetic/
