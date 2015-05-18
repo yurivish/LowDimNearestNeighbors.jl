@@ -51,59 +51,52 @@ end
 
 # Code for branch-free saturation arithmetic from
 # http://locklessinc.com/articles/sat_arithmetic/
-function satadd{T <: Unsigned}(x::T, y::Unsigned)
-	res::T = x + y
-	oftype(T, res | -(res < x))
+satadd{T <: Unsigned}(x::T, y::T) = (res = x + y; res | unsigned(-signed(T(res < x))))
+satsub{T <: Unsigned}(x::T, y::T) = (res = x - y; res & unsigned(-signed(T(res <= x))))
+
+function satmul(x::UInt32, y::UInt32)
+	res = UInt64(x) * UInt64(y)
+	hi::UInt32 = res >> 32
+	lo::UInt32 = res & 0x0000ffff
+	lo | unsigned(-Int32(hi != 0))
 end
 
-function satsub{T <: Unsigned}(x::T, y::Unsigned)
-	res::T = x - y
-	oftype(T, res & -(res <= x))
+function satmul(x::UInt64, y::UInt64)
+	res = UInt128(x) * UInt128(y)
+	hi::UInt64 = res >> 64
+	lo::UInt64 = res & 0x0000000000000000ffffffffffffffff
+	lo | unsigned(-Int64(hi != 0))
 end
 
-function satmul(x::Uint64, y::Uint64)
-	res = uint128(x) * uint128(y)
-	hi::Uint64 = res >> 64
-	lo::Uint64 = res
-	lo | -bool(hi)
-end
-
-function satmul(x::Uint32, y::Uint32)
-	res = uint64(x) * uint64(y)
-	hi::Uint32 = res >> 32
-	lo::Uint32 = res
-	lo | -bool(hi)
-end
-
-function satdiv(x::Unsigned, y::Unsigned)
-	x / y # There's no way for the result to underflow or overflow.
-end
+# There's no way for the result to underflow or overflow.
+satdiv{T <: Unsigned}(x::T, y::T) = x / y
 
 # Represent shifted points by their own type.
 # It is assumed that data is a point with
-# eltype(data) <: Unsigned
+# eltype(data) <: Unsigned and the value
+# of offset fits into the type eltype(data).
 immutable ShiftedPos{Q}
 	data::Q
-	offset::Uint
+	offset::UInt
 end
-Base.getindex(s::ShiftedPos, args...) = satadd(s.data[args...], s.offset)
+Base.getindex(s::ShiftedPos, args...) = satadd(s.data[args...], oftype(s.data[args...], s.offset))
 Base.length(s::ShiftedPos) = length(s.data)
 
 immutable ShiftedNeg{Q}
 	data::Q
-	offset::Uint
+	offset::UInt
 end
-Base.getindex(s::ShiftedNeg, args...) = satsub(s.data[args...], s.offset)
+Base.getindex(s::ShiftedNeg, args...) = satsub(s.data[args...], oftype(s.data[args...], s.offset))
 Base.length(s::ShiftedNeg) = length(s.data)
 
 immutable Result{P, Q}
 	point::P
-	r_sq::Uint
+	r_sq::UInt
 	bbox_hi::ShiftedPos{Q}
 	bbox_lo::ShiftedNeg{Q}
-	Result(point::P) = new(point, typemax(Uint))
+	Result(point::P) = new(point, typemax(UInt))
 	function Result(point::P, r_sq, q::Q)
-		r = iceil(sqrt(r_sq))
+		r = ceil(Integer, sqrt(r_sq))
 		new(point, r_sq, ShiftedPos{Q}(q, r), ShiftedNeg{Q}(q, r))
 	end
 end
@@ -113,10 +106,10 @@ function sqdist(p, q)
 	@assert length(p) == length(q)
 	@assert length(q) > 0
 
-	d_sq::Uint = 0
+	d_sq::UInt = 0
 	for i in 1:length(p)
-		# d_sq += uint((p[i] - q[i])^2)
-		diff = uint(p[i] < q[i] ? q[i] - p[i] : p[i] - q[i]) # Note: uint() rounds.
+		# d_sq += UInt((p[i] - q[i])^2)
+		diff = UInt(p[i] < q[i] ? q[i] - p[i] : p[i] - q[i])
 		d_sq = satadd(d_sq, satmul(diff, diff))
 	end
 	d_sq
@@ -133,10 +126,10 @@ function sqdist_to_quadtree_box(q, p1, p2)
 		lessmsb(xor, ixor) && (xor = ixor)
 	end
 
-	# The size and power-of-two of the quadtree-aligned
+	# The power-of-two and size of the quadtree-aligned
 	# bounding box that most snugly encloses p1 and p2
 	power = xor == 0 ? 1 : 1 + exponent(float(xor))
-	size = (1 << power)
+	size = one(Uint) << power
 
 	# Calculate the squared distance from q to the box.
 	# The return value is a float for efficiency;
@@ -149,7 +142,7 @@ function sqdist_to_quadtree_box(q, p1, p2)
 
 		# Accumulate squared distance from the box
 		if q[i] < bbox_lo
-			d_sq += (q[i] - bbox_lo)^2
+			d_sq += (Uint(bbox_lo) - q[i])^2
 		elseif q[i] > bbox_hi
 			d_sq += (q[i] - bbox_hi)^2
 		end
@@ -157,7 +150,7 @@ function sqdist_to_quadtree_box(q, p1, p2)
 	d_sq
 end
 
-function nearest{P, Q}(arr::Array{P}, q::Q, lo::Uint, hi::Uint, R::Result{P, Q}, ε::Float64)
+function nearest{P, Q, T <: Unsigned}(arr::Array{P}, q::Q, lo::T, hi::T, R::Result{P, Q}, ε::Float64)
 	# Return early if the range is empty
 	lo > hi && return R
 
@@ -191,7 +184,7 @@ end
 
 function nearest{P, Q}(arr::Array{P}, q::Q, ε=0.0)
 	@assert length(arr) > 0 "Searching for the nearest in an empty array"
-	nearest(arr, q, uint(1), uint(length(arr)), Result{P, Q}(arr[1]), ε).point
+	nearest(arr, q, UInt(1), UInt(length(arr)), Result{P, Q}(arr[1]), ε).point
 end
 
 end # module

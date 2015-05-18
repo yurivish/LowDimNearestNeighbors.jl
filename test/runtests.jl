@@ -10,6 +10,7 @@ Vec2(x, y) = Vec2(convert(Unsigned, x), convert(Unsigned, y))
 Base.getindex(v::Vec2, n::Int) = n == 1 ? v.x : n == 2 ? v.y : throw("Vec2 indexing error.")
 Base.length(v::Vec2) = 2
 Base.rand{T}(::Type{Vec2{T}}) = Vec2(rand(T), rand(T))
+Base.eltype{T}(::Type{Vec2{T}}) = T
 
 #
 
@@ -75,14 +76,14 @@ end
 
 # Test Shifted indexing, clamping, and length
 let
-	el = Vec2{Uint64}(1, 2)
-	shifted = LowDimNearestNeighbors.ShiftedPos{Vec2{Uint64}}(el, 5)
+	el = Vec2{UInt64}(1, 2)
+	shifted = LowDimNearestNeighbors.ShiftedPos{Vec2{UInt64}}(el, 5)
 	@test shifted[1] == 6
 	@test shifted[2] == 7
 	@test length(shifted) == 2
 
-	el = Vec2{Uint64}(4, 6)
-	shifted = LowDimNearestNeighbors.ShiftedNeg{Vec2{Uint64}}(el, 5)
+	el = Vec2{UInt64}(4, 6)
+	shifted = LowDimNearestNeighbors.ShiftedNeg{Vec2{UInt64}}(el, 5)
 	@test shifted[1] == 0
 	@test shifted[2] == 1
 	@test length(shifted) == 2
@@ -97,9 +98,9 @@ let
 	@test sqdist(Vec2(3, 0), Vec2(0, 4)) == 5*5
 
 	# Test saturation cases
-	@test sqdist(0, typemax(Uint)) == typemax(Uint)
-	@test sqdist(typemax(Uint), 0) == typemax(Uint)
-	@test sqdist(Vec2(3, 3), Vec2(typemax(Uint), typemax(Uint))) == typemax(Uint)
+	@test sqdist(0, typemax(UInt)) == typemax(UInt)
+	@test sqdist(typemax(UInt), 0) == typemax(UInt)
+	@test sqdist(Vec2(3, 3), Vec2(typemax(UInt), typemax(UInt))) == typemax(UInt)
 end
 
 # Test sqdist_to_quadtree_box
@@ -165,18 +166,23 @@ let
 	numelements = numqueries = 1000
 
 	test(
-		preprocess!([rand(Vec2{Uint64}) for i in 1:numelements]),
-		[rand(Vec2{Uint64}) for i in 1:numqueries]
+		preprocess!([rand(Vec2{UInt64}) for i in 1:numelements]),
+		[rand(Vec2{UInt64}) for i in 1:numqueries]
 	)
 
 	test(
-		preprocess!([rand(Vec2{Uint16}) for i in 1:numelements]),
-		[rand(Vec2{Uint32}) for i in 1:numqueries]
+		preprocess!([rand(Vec2{UInt32}) for i in 1:numelements]),
+		[rand(Vec2{UInt32}) for i in 1:numqueries]
 	)
 
 	test(
-		preprocess!([rand(Vec2{Uint32}) for i in 1:numelements]),
-		[rand(Vec2{Uint16}) for i in 1:numqueries]
+		preprocess!([rand(Vec2{UInt16}) for i in 1:numelements]),
+		[rand(Vec2{UInt16}) for i in 1:numqueries]
+	)
+
+	test(
+		preprocess!([rand(Vec2{UInt8}) for i in 1:numelements]),
+		[rand(Vec2{UInt8}) for i in 1:numqueries]
 	)
 
 end
@@ -185,8 +191,8 @@ end
 let
 	function benchmark(numelements, numqueries)
 		for i in 1:10
-			arr = preprocess!([rand(Vec2{Uint8}) for i in 1:numelements])
-			queries = [rand(Vec2{Uint8}) for i in 1:numqueries]
+			arr = preprocess!([rand(Vec2{UInt8}) for i in 1:numelements])
+			queries = [rand(Vec2{UInt8}) for i in 1:numqueries]
 			@time for q in queries
 				nearest(arr, q)
 			end
