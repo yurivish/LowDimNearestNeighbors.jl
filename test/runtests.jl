@@ -2,15 +2,9 @@ using LowDimNearestNeighbors
 using Base.Test
 
 # Define multidimensional vector types for testing
-immutable Vec2{T <: Unsigned}
-	x::T
-	y::T
-end
-Vec2(x, y) = Vec2(convert(Unsigned, x), convert(Unsigned, y))
-Base.getindex(v::Vec2, n::Int) = n == 1 ? v.x : n == 2 ? v.y : throw("Vec2 indexing error.")
-Base.length(v::Vec2) = 2
+typealias Vec2{T <: Unsigned} Tuple{T, T}
+Base.call{T}(::Type{Vec2{T}}, x::T, y::T) = (unsigned(x), unsigned(y))
 Base.rand{T}(::Type{Vec2{T}}) = Vec2(rand(T), rand(T))
-Base.eltype{T}(::Type{Vec2{T}}) = T
 
 #
 

@@ -49,7 +49,7 @@ function preprocess!(arr)
 	sort!(arr, lt=shuffless)
 end
 
-# Code for branch-free saturation arithmetic from
+# Code for branch-free saturating arithmetic from
 # http://locklessinc.com/articles/sat_arithmetic/
 satadd{T <: Unsigned}(x::T, y::T) = (res = x + y; res | unsigned(-signed(T(res < x))))
 satsub{T <: Unsigned}(x::T, y::T) = (res = x - y; res & unsigned(-signed(T(res <= x))))
@@ -79,14 +79,16 @@ immutable ShiftedPos{Q}
 	data::Q
 	offset::UInt
 end
-Base.getindex(s::ShiftedPos, args...) = satadd(s.data[args...], oftype(s.data[args...], s.offset))
+Base.getindex(s::ShiftedPos, args...) = (v = s.data[args...]; v + s.offset > typemax(v) ? typemax(v) : oftype(v, v + s.offset))
+# satadd(v, oftype(v, clamp(s.offset, zero(v), typemax(v)))))
 Base.length(s::ShiftedPos) = length(s.data)
 
 immutable ShiftedNeg{Q}
 	data::Q
 	offset::UInt
 end
-Base.getindex(s::ShiftedNeg, args...) = satsub(s.data[args...], oftype(s.data[args...], s.offset))
+Base.getindex(s::ShiftedNeg, args...) = (v = s.data[args...]; v <s.offset ? zero(v) : oftype(v, v - s.offset))
+# satsub(v, oftype(v, clamp(s.offset, zero(v), typemax(v)))))
 Base.length(s::ShiftedNeg) = length(s.data)
 
 immutable Result{P, Q}
@@ -182,9 +184,11 @@ function nearest{P, Q, T <: Unsigned}(arr::Array{P}, q::Q, lo::T, hi::T, R::Resu
 	R
 end
 
-function nearest{P, Q}(arr::Array{P}, q::Q, ε=0.0)
+function nearest_result{P, Q}(arr::Array{P}, q::Q, ε=0.0)
 	@assert length(arr) > 0 "Searching for the nearest in an empty array"
-	nearest(arr, q, UInt(1), UInt(length(arr)), Result{P, Q}(arr[1]), ε).point
+	nearest(arr, q, UInt(1), UInt(length(arr)), Result{P, Q}(arr[1]), ε)
 end
+
+nearest{P, Q}(arr::Array{P}, q::Q, ε=0.0) = nearest_result(arr, q, ε).point
 
 end # module
