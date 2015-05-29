@@ -6,7 +6,7 @@
 
 module LowDimNearestNeighbors
 
-export shuffless, shuffmore, shuffeq, preprocess!, nearest
+export shuffless, shuffmore, shuffeq, preprocess!, nearest, nearest_result
 
 # Return whether the index of the most significant bit
 # of m is higher than that of n.
