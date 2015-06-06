@@ -184,11 +184,9 @@ function nearest{P, Q, T <: Unsigned}(arr::Array{P}, q::Q, lo::T, hi::T, R::Resu
 	R
 end
 
-function nearest_result{P, Q}(arr::Array{P}, q::Q, ε=0.0)
+function nearest{P, Q}(arr::Array{P}, q::Q, ε=0.0)
 	@assert length(arr) > 0 "Searching for the nearest in an empty array"
-	nearest(arr, q, UInt(1), UInt(length(arr)), Result{P, Q}(arr[1]), ε)
+	nearest(arr, q, UInt(1), UInt(length(arr)), Result{P, Q}(arr[1]), ε).point
 end
-
-nearest{P, Q}(arr::Array{P}, q::Q, ε=0.0) = nearest_result(arr, q, ε).point
 
 end # module
