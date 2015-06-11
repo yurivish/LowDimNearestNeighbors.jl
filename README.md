@@ -6,13 +6,13 @@ This package implements approximate nearest-neighbor search in low dimensions fo
 	using LowDimNearestNeighbors
 
 	# Create an array of random 3d points
-	arr = [[rand(Uint8), rand(Uint8), rand(Uint8)] for i in 1:100000]
+	arr = [[rand(UInt8), rand(UInt8), rand(UInt8)] for i in 1:100000]
 
 	# Preprocess it to prepare for efficient searching
 	preprocess!(arr)
 
 	# Perform an exact nearest-neighbor search
-	query  = [rand(Uint8), rand(Uint8), rand(Uint8)]
+	query  = [rand(UInt8), rand(UInt8), rand(UInt8)]
 	result = nearest(arr, query)
 	println("Nearest point to $query: $result")
 	println("Distance: ", norm(query - result))
