@@ -131,7 +131,7 @@ function sqdist_to_quadtree_box(q, p1, p2)
 	# The power-of-two and size of the quadtree-aligned
 	# bounding box that most snugly encloses p1 and p2
 	power = xor == 0 ? 1 : 1 + exponent(float(xor))
-	size = one(Uint) << power
+	size = one(UInt) << power
 
 	# Calculate the squared distance from q to the box.
 	# The return value is a float for efficiency;
@@ -144,7 +144,7 @@ function sqdist_to_quadtree_box(q, p1, p2)
 
 		# Accumulate squared distance from the box
 		if q[i] < bbox_lo
-			d_sq += (Uint(bbox_lo) - q[i])^2
+			d_sq += (UInt(bbox_lo) - q[i])^2
 		elseif q[i] > bbox_hi
 			d_sq += (q[i] - bbox_hi)^2
 		end
